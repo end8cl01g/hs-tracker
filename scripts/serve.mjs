@@ -22,10 +22,10 @@ const MIME = {
   '.txt': 'text/plain; charset=utf-8', '.map': 'application/json',
 };
 
-export function createStaticServer(root, port = 0) {
+export function createStaticServer(root, port = 0, host = '127.0.0.1') {
   return new Promise((resolve) => {
     const srv = buildServer(root);
-    srv.listen(port, '127.0.0.1', () => resolve({ server: srv, port: srv.address().port, close: () => new Promise((r) => srv.close(r)) }));
+    srv.listen(port, host, () => resolve({ server: srv, port: srv.address().port, host, close: () => new Promise((r) => srv.close(r)) }));
   });
 }
 
