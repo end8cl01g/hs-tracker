@@ -53,6 +53,15 @@ T(!/\beval\(|new Function\(/.test(srcAll), '前後端無 eval()/new Function()�
 T(/safeEqual_/.test(gsAll) && /SHARED_SECRET/.test(gsAll), 'GAS 有密鑰比對（常數時間）', 'GAS 端點無鉴權（公開可寫入你的表）');
 T(/ContentService\.createTextOutput\(JSON\.stringify/.test(gsAll), 'ContentService + JSON 輸出', 'GAS 未用 ContentService JSON 輸出');
 
+// 6b) 部署时序：bootstrap 路由必须在「密鑰閘門」之前，否則首次初始化永遠進不去（上輪實測踩過）
+{
+  const code = stripComments(read('gas/Code.gs'));
+  const boot = code.indexOf("=== 'bootstrap'");
+  const gate = code.indexOf("secret-not-configured");
+  T(boot > -1 && gate > -1 && boot < gate, 'GAS：bootstrap 通道在密鑰閘門之前（首次初始化才走得通）',
+    'GAS：bootstrap 被密鑰閘門擋死 — 沒密鑰時無法初始化，有密鑰時不需要它');
+}
+
 // 7) 客戶端：同步失敗不得被吞（原規格 silently return 是最大數據風險）
 const sm = read('js/sync-manager.js');
 T(/status:\s*'error'/.test(sm) && /lastError/.test(sm), '同步失敗會顯式進入 error 狀態並帶原因', '同步錯誤被吞掉（會假裝已同步）');

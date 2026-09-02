@@ -12,8 +12,8 @@
 
 ```bash
 npm ci
-npm run check && npm test        # 靜態閉環檢查 + 56 項測試
-npm run build && npm run serve   # 產生 dist/ 並開 http://localhost:8080
+npm run check && npm test        # 靜態閉環 47 項 + 68 項測試
+npm run build && npm run preview   # 產生 dist/ 並開 http://localhost:8080
 ```
 
 瀏覽器開 `http://localhost:8080`，按「開始訓練旅程」即可離線打卡（不需要任何雲端設定）。
@@ -38,8 +38,8 @@ sw.js                 離線殼 + 設定檔 network-first（版本由 build 注�
 data/                 課表、技能樹(36)、徽章(12) —— 改這裡就能改訓練計畫
 vendor/sql-wasm.{js,wasm}   sql.js 1.14.2 自架（不走任何 CDN）
 gas/                  Code.gs / Sheets.gs / Config.gs / Utils.gs + appsscript.json
-tests/                node:test：core / db / sync / sw / site / gas
-scripts/              build.mjs check.mjs serve.mjs ship.sh deploy-gas.sh
+tests/                node:test：db / game-core / sync / sw / site / gas / gas-boot / scripts
+scripts/              build.mjs check.mjs serve.mjs preview.mjs ship.sh deploy-gas.mjs
 ```
 
 ---
@@ -63,14 +63,16 @@ REPO_NAME=hs-tracker bash scripts/ship.sh
 
 ```bash
 export clasp_config_auth=/usr/local/share/clasp/.clasprc.json   # 或直接 clasp login
-cd gas && clasp create-script --title "HS Tracker Backend" --type standalone --rootDir .
-clasp push
-clasp create-deployment -d "v1"          # 不加 -V 就是 @HEAD
+node scripts/deploy-gas.mjs              # 只預覽，不碰你帳號
+node scripts/deploy-gas.mjs --yes        # 建專案 → push → 建部署 → bootstrap 設密鑰＋建表 → 刪 token → 再 push
 ```
 
-然後在編輯器跑一次 `bootstrapSecret_()`：它會建好 `Changes/Backups/Meta` 三個工作表、
-產生高強度密鑰寫進 Project Properties，並把密鑰印在「執行記錄」裡。
-把 Web App URL 與密鑰貼進 App 的設定頁 → 按「📡 測試連線」→ 再按「🔄 立即同步」。
+腳本把「一定要進編輯器點一下」那步也自動化掉了：它臨時寫一份 `gas/Bootstrap.gs`（一次性
+`SETUP_TOKEN`，已 gitignore、不進 public repo）→ push → 用 `action=bootstrap` 換回 64 字元密鑰
+→ **立刻刪掉 Bootstrap.gs 再 push**，設定通道就此關閉。之後 `bootstrap` 一律回 `already-initialized`。
+
+把印出來的 Web App URL 與密鑰貼進 App 設定頁 → 按「📡 測試連線」→ 再按「🔄 立即同步」。
+（兩者也會存進 `.deploy/gas.json`，該目錄已 gitignore；手動方式仍可用：GAS 編輯器跑 `bootstrapSecret_()`。）
 
 **部署設定必須是**：執行身份「我」、訪問權限「任何人」，但每個請求都要帶密鑰；
 沒設 `SHARED_SECRET` 之前端點直接回 `secret-not-configured` 且**不寫表**（防止裸奔）。
@@ -91,6 +93,7 @@ clasp create-deployment -d "v1"          # 不加 -V 就是 @HEAD
 | 1.8 | `CACHE_NAME='hs-tracker-v2'` 寫死 → 改版無效 | 版本由 build 注入；CI 断言 `dist/sw.js` 含本次 sha；`sw.test.mjs` 驗舊 cache 被清 |
 | 1.9 | 未設 URL／離線時「silently return」＋ SW 吞錯 → 會假裝已同步 | `disabled`/`error` 為可見狀態，`lastError` 顯示在同步列；`sync.test.mjs` 4 條擋關 |
 | 2.x | GAS：`application/json` 觸發 preflight、subpath 會導向登入頁、CacheService 寫 24h 不可能、回傳表格 URL | text/plain ＋ `redirect:'follow'`；只用 body；快取 6h 上限＋Properties 備援；`gas.test.mjs` 逐條斷言 |
+| 2.6 | （實作時自己踩到的）`bootstrap` 寫在密鑰閘門**後面** → 還沒密鑰時永遠進不去，初始化死迴圈 | `handle_` 先放行 `bootstrap`（僅限未設定密鑰時），`tests/gas-boot.test.mjs` 跑真實 `handle_` 走完「未初始化→ping 可判讀→錯 token 拒→對 token 設密鑰→通道關閉→舊密鑰才能 push」；`check.mjs` 第 47 項守住順序 |
 | — | 免費 Pages 只能 public repo → 怕洩憑證 | `.gitignore` 擋 `.clasprc.json`/`.clasp.json`；`exportAll()` 主動剔除 `gas_secret`（有測試） |
 
 ## 已知取捨（不是 bug）
@@ -104,8 +107,8 @@ clasp create-deployment -d "v1"          # 不加 -V 就是 @HEAD
 ## 測試怎麼跑
 
 ```bash
-npm test                 # core / db / sync / sw / site / gas，共 56 項
-npm run check            # 46 項靜態閉環（引用、PRECACHE、GAS 紅線、manifest、CDN 殘留）
+npm test                 # db / game-core / sync / sw / site / gas / gas-boot / scripts，共 68 項
+npm run check            # 47 項靜態閉環（引用、PRECACHE、GAS 紅線、manifest、CDN 殘留）
 npm run build && npm run size
 ```
 

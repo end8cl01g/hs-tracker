@@ -23,7 +23,23 @@ function handle_(e) {
   const props = PropertiesService.getScriptProperties();
 
   const secret = props.getProperty('SHARED_SECRET') || '';
+
+  // 「首次設定」通道：只有還沒密鑰時開放，比對的是 gas/Bootstrap.gs 裡的一次性 SETUP_TOKEN
+  // （scripts/deploy-gas.mjs 會寫入、用畢即刪並重新 push，把這條路關掉）
+  if (action === 'bootstrap') {
+    const out = secret
+      ? { ok: false, error: 'already-initialized', hint: '密鑰已設定；要重設請先刪 Project Properties 的 SHARED_SECRET' }
+      : bootstrapWithToken_(req.setup_token);
+    out.server_ts = nowISO_();
+    out.ms = Date.now() - t0;
+    return jsonOut_(out);
+  }
+
   if (!secret) {
+    // 讓「測試連線」在還沒初始化時也能拿到明確答案，而不是被同一句 reject 嗆住
+    if (action === 'ping') {
+      return jsonOut_({ ok: false, error: 'secret-not-configured', secret_configured: false, app: APP_NAME, server_ts: nowISO_(), ms: Date.now() - t0 });
+    }
     return jsonOut_({ ok: false, error: 'secret-not-configured', hint: '在 File > Project Properties 設 SHARED_SECRET 後再同步' });
   }
   if (action !== 'ping' && !safeEqual_(req.secret, secret)) {
@@ -46,7 +62,6 @@ function handle_(e) {
     else if (action === 'backup') out = saveBackup_(device, req.payload);
     else if (action === 'restore') out = latestBackup_();
     else if (action === 'setup') out = ensureSheets_();
-    else if (action === 'bootstrap') out = bootstrapWithToken_(req.setup_token);
     else out = { ok: false, error: 'unknown-action: ' + action };
     out.server_ts = nowISO_();
     out.ms = Date.now() - t0;
@@ -76,7 +91,7 @@ function jsonOut_(obj) {
 }
 
 /**
- * 一次性初始化（給 scripts/gas-setup.mjs 用；不想留這條路就事後把 gas/Bootstrap.gs 刪掉再 push）
+ * 一次性初始化（由 scripts/deploy-gas.mjs 自動呼叫；該腳本用畢即刪 gas/Bootstrap.gs 並重新 push）
  * 條件：本專案內有一份只存在於**你的 private script**（且已 gitignore、不會進 public repo）的
  * SETUP_TOKEN，比對成功才產生並寫入 SHARED_SECRET；第二次呼叫就必須帶密鑰了。
  */
@@ -86,7 +101,7 @@ function bootstrapWithToken_(token) {
     return { ok: false, error: 'already-initialized', hint: '密鑰已設定；要重設請先手動刪除 SHARED_SECRET' };
   }
   const expected = (typeof SETUP_TOKEN === 'undefined') ? '' : String(SETUP_TOKEN);
-  if (!expected) return { ok: false, error: 'no-setup-token', hint: '先跑 scripts/gas-setup.mjs 產生 gas/Bootstrap.gs' };
+  if (!expected) return { ok: false, error: 'no-setup-token', hint: '跑 node scripts/deploy-gas.mjs --yes（它會暫存 gas/Bootstrap.gs 再 push）' };
   if (!safeEqual_(token, expected)) return { ok: false, error: 'bad-setup-token' };
   const secret = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
   props.setProperty('SHARED_SECRET', secret);
