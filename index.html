@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#e94560">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Handstand">
+  <title>🤸 Press to Handstand Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">正在載入訓練資料庫…</p>
+    <p class="loading-sub" id="loading-error" hidden></p>
+  </div>
+
+  <div id="onboarding-modal" class="modal" hidden>
+    <div class="modal-content">
+      <h2>🤸 歡迎，未來的倒立者</h2>
+      <p>設定訓練起始日（用來推算目前階段）：</p>
+      <input type="date" id="onboard-start-date">
+      <p>起始階段：</p>
+      <select id="onboard-phase">
+        <option value="0">Phase 0 — 除鏽重建</option>
+        <option value="1">Phase 1 — 地基工程</option>
+        <option value="2">Phase 2 — 結構建設</option>
+        <option value="3">Phase 3 — 進階工程</option>
+        <option value="4">Phase 4 — 精熟與變形</option>
+      </select>
+      <button id="onboard-start" class="btn-primary">開始訓練旅程 🚀</button>
+    </div>
+  </div>
+
+  <div id="app" class="app" hidden>
+    <header class="app-header">
+      <div id="sync-bar" class="sync-bar" data-status="init">
+        <span id="sync-icon">☁️</span>
+        <span id="sync-text">檢查中…</span>
+        <button id="btn-sync-now-top" class="sync-now-btn" type="button">同步</button>
+      </div>
+    </header>
+
+    <main id="tab-content" class="tab-content">
+      <section id="tab-today" class="tab-panel active">
+        <div class="today-head">
+          <div class="phase-badge" id="phase-badge">Phase 0</div>
+          <div class="streak" id="streak-display">🔥 0 天</div>
+        </div>
+        <div class="level-bar" id="level-bar">
+          <span class="level-title" id="level-title">Lv.1 新手</span>
+          <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
+          <span class="xp-text" id="xp-text">0 / 500 XP</span>
+        </div>
+        <div id="workout-card" class="workout-card"></div>
+        <div class="quick-note">
+          <textarea id="quick-note-input" placeholder="今日筆記…（手感、腕痛、恐懼度）" rows="3"></textarea>
+          <button id="save-note" class="btn-secondary" type="button">💾 儲存</button>
+        </div>
+        <div class="today-actions">
+          <button id="btn-complete" class="btn-primary" type="button">✅ 完成打勾並存檔</button>
+          <button id="btn-skip-day" class="btn-ghost" type="button">🛌 今天休息（記一筆）</button>
+        </div>
+      </section>
+
+      <section id="tab-tree" class="tab-panel">
+        <div class="tree-header">
+          <h2>🌳 技能樹</h2>
+          <span id="tree-progress">0 / 36 已解鎖</span>
+        </div>
+        <div id="skill-tree-container" class="skill-tree-container"></div>
+      </section>
+
+      <section id="tab-achievements" class="tab-panel">
+        <h2>🏆 成就</h2>
+        <div class="stats-grid" id="stats-grid"></div>
+        <div id="badge-grid" class="badge-grid"></div>
+        <h3>📈 近 8 週</h3>
+        <div id="weekly-chart" class="weekly-chart"></div>
+      </section>
+
+      <section id="tab-settings" class="tab-panel">
+        <div class="settings-group">
+          <h3>📅 訓練設定</h3>
+          <label>起始日期 <input type="date" id="setting-start-date"></label>
+          <label>手動指定階段
+            <select id="setting-phase">
+              <option value="">（自動：依起始日推算）</option>
+              <option value="0">Phase 0</option><option value="1">Phase 1</option>
+              <option value="2">Phase 2</option><option value="3">Phase 3</option>
+              <option value="4">Phase 4</option>
+            </select>
+          </label>
+          <p class="hint" id="rest-days-label">休息日：讀取中…</p>
+          <p class="hint">「今天練什麼」只有一個真相：本機星期 × 課表（不做起算日取模，避免跨日差一天）。</p>
+        </div>
+
+        <div class="settings-group">
+          <h3>☁️ 雲端同步</h3>
+          <p class="settings-desc">透過 Google Apps Script 寫入 Google Sheets。留空＝完全離線，功能不打折。</p>
+          <div class="sync-detail" id="sync-status-detail">
+            <p>狀態：<span id="sync-status-label">檢查中…</span></p>
+            <p>上次同步：<span id="last-sync-time">—</span></p>
+            <p>待同步：<span id="pending-sync-count">—</span> 筆</p>
+            <p>衝突保留：<span id="conflict-count">0</span> 筆</p>
+            <p>儲存持久化：<span id="persist-state">檢查中…</span></p>
+          </div>
+          <label>GAS Web App URL
+            <input type="url" id="setting-gas-url" placeholder="https://script.google.com/macros/s/…/exec">
+          </label>
+          <label>同步密鑰（＝GAS 的 SHARED_SECRET）
+            <input type="password" id="setting-gas-secret" placeholder="跑 bootstrapSecret_() 後貼在這裡">
+          </label>
+          <div class="btn-row">
+            <button id="btn-sync-now" class="btn-secondary" type="button">🔄 立即同步</button>
+            <button id="btn-test-conn" class="btn-secondary" type="button">📡 測試連線</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>💾 資料管理</h3>
+          <div class="btn-row">
+            <button id="btn-export" class="btn-secondary" type="button">📤 匯出 JSON</button>
+            <button id="btn-import" class="btn-secondary" type="button">📥 匯入 JSON</button>
+            <button id="btn-reload-config" class="btn-secondary" type="button">🔁 重抓設定檔</button>
+          </div>
+          <button id="btn-reset" class="btn-danger" type="button">🗑️ 重置所有資料</button>
+          <input type="file" id="import-file-input" accept=".json,application/json" hidden>
+          <p class="hint">iOS Safari 對未安裝的網頁有 7 天儲存清除上限 → 請「添加到主畫面」，並定期匯出備份。</p>
+        </div>
+
+        <div class="settings-group">
+          <h3>ℹ️ 關於</h3>
+          <p class="about-text">Press to Handstand Tracker <span id="about-version">v2.0</span></p>
+          <p class="about-text">sql.js（自架 WASM）＋ IndexedDB ＋ GitHub Pages  GAS Proxy</p>
+          <p class="about-text" id="about-sw">Service Worker：檢查中…</p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="today" type="button"><span class="tab-icon">🏠</span><span class="tab-label">今天</span></button>
+      <button class="tab-btn" data-tab="tree" type="button"><span class="tab-icon">🌳</span><span class="tab-label">技能樹</span></button>
+      <button class="tab-btn" data-tab="achievements" type="button"><span class="tab-icon">🏆</span><span class="tab-label">成就</span></button>
+      <button class="tab-btn" data-tab="settings" type="button"><span class="tab-icon">⚙️</span><span class="tab-label">設定</span></button>
+    </nav>
+
+    <div id="xp-float-container" class="xp-float-container" aria-hidden="true"></div>
+    <div id="confetti-container" class="confetti-container" aria-hidden="true"></div>
+    <div id="level-up-overlay" class="level-up-overlay" hidden>
+      <div class="level-up-content"><span>⬆️ LEVEL UP!</span><span id="level-up-title"></span></div>
+    </div>
+    <div id="skill-modal" class="modal" hidden><div class="modal-content" id="skill-modal-content"></div></div>
+    <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+  </div>
+
+  <script src="js/build-info.js"></script>
+  <script src="vendor/sql-wasm.js"></script>
+  <script src="js/dates.js"></script>
+  <script src="js/game-core.js"></script>
+  <script src="js/build-info.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/data-layer.js"></script>
+  <script src="js/gas-proxy.js"></script>
+  <script src="js/sync-manager.js"></script>
+  <script src="js/game-engine.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/backup.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

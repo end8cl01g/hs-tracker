@@ -1,0 +1,19 @@
+{
+  "id": "/hs-tracker/",
+  "name": "Press to Handstand Tracker",
+  "short_name": "HS Tracker",
+  "description": "52 週倒立訓練追蹤器 — 遊戲化技能樹，離線優先",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#0a0a1a",
+  "theme_color": "#e94560",
+  "categories": ["health", "fitness", "lifestyle"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

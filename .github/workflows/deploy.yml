@@ -1,0 +1,66 @@
+name: build & deploy (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # 先跑靜態閉環檢查：檔名/引用/PRECACHE/GAS 紅線，這些錯不需要瀏覽器就能抓
+      - run: npm run check
+      - run: npm test
+      - name: build dist（把 git sha 戳進 sw.js 的 cache key）
+        env:
+          BUILD_ID: ${{ github.sha }}
+        run: npm run build
+      - name: 建置產物完整性
+        run: |
+          test -f dist/index.html
+          test -f dist/vendor/sql-wasm.wasm
+          test -f dist/js/build-info.js
+          grep -q "${GITHUB_SHA}" dist/sw.js || { echo "✗ sw.js 沒含本次 build 代號 → 改版不會生效"; exit 1; }
+          ! grep -rq "cdnjs\|jsdelivr\|unpkg" dist/*.html dist/js dist/sw.js || { echo "✗ dist 含外部 CDN"; exit 1; }
+          echo "dist ok：$(find dist -type f | wc -l) 檔 / $(du -sb dist | cut -f1) bytes"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: _site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

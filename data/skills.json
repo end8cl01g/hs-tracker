@@ -1,0 +1,462 @@
+{
+  "version": 1,
+  "updated_at": "2026-09-02T21:08:55.690Z",
+  "nodes": [
+    {
+      "id": "wrist1",
+      "branch": "wrist",
+      "branch_label": "手腕耐久",
+      "tier": 1,
+      "name": "手腕耐久 Lv1",
+      "requires": [],
+      "min_xp": 0,
+      "min_streak": 0,
+      "desc": "手腕耐久 第 1 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "wrist2",
+      "branch": "wrist",
+      "branch_label": "手腕耐久",
+      "tier": 2,
+      "name": "手腕耐久 Lv2",
+      "requires": [
+        "wrist1"
+      ],
+      "min_xp": 450,
+      "min_streak": 0,
+      "desc": "手腕耐久 第 2 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "wrist3",
+      "branch": "wrist",
+      "branch_label": "手腕耐久",
+      "tier": 3,
+      "name": "手腕耐久 Lv3",
+      "requires": [
+        "wrist2"
+      ],
+      "min_xp": 900,
+      "min_streak": 0,
+      "desc": "手腕耐久 第 3 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "wrist4",
+      "branch": "wrist",
+      "branch_label": "手腕耐久",
+      "tier": 4,
+      "name": "手腕耐久 Lv4",
+      "requires": [
+        "wrist3"
+      ],
+      "min_xp": 1350,
+      "min_streak": 0,
+      "desc": "手腕耐久 第 4 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "wrist5",
+      "branch": "wrist",
+      "branch_label": "手腕耐久",
+      "tier": 5,
+      "name": "手腕耐久 Lv5",
+      "requires": [
+        "wrist4"
+      ],
+      "min_xp": 1800,
+      "min_streak": 14,
+      "desc": "手腕耐久 第 5 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "wrist6",
+      "branch": "wrist",
+      "branch_label": "手腕耐久",
+      "tier": 6,
+      "name": "手腕耐久 Lv6",
+      "requires": [
+        "wrist5"
+      ],
+      "min_xp": 2250,
+      "min_streak": 14,
+      "desc": "手腕耐久 第 6 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "line1",
+      "branch": "line",
+      "branch_label": "身體對齊",
+      "tier": 1,
+      "name": "身體對齊 Lv1",
+      "requires": [],
+      "min_xp": 0,
+      "min_streak": 0,
+      "desc": "身體對齊 第 1 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "line2",
+      "branch": "line",
+      "branch_label": "身體對齊",
+      "tier": 2,
+      "name": "身體對齊 Lv2",
+      "requires": [
+        "line1"
+      ],
+      "min_xp": 450,
+      "min_streak": 0,
+      "desc": "身體對齊 第 2 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "line3",
+      "branch": "line",
+      "branch_label": "身體對齊",
+      "tier": 3,
+      "name": "身體對齊 Lv3",
+      "requires": [
+        "line2"
+      ],
+      "min_xp": 900,
+      "min_streak": 0,
+      "desc": "身體對齊 第 3 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "line4",
+      "branch": "line",
+      "branch_label": "身體對齊",
+      "tier": 4,
+      "name": "身體對齊 Lv4",
+      "requires": [
+        "line3"
+      ],
+      "min_xp": 1350,
+      "min_streak": 0,
+      "desc": "身體對齊 第 4 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "line5",
+      "branch": "line",
+      "branch_label": "身體對齊",
+      "tier": 5,
+      "name": "身體對齊 Lv5",
+      "requires": [
+        "line4"
+      ],
+      "min_xp": 1800,
+      "min_streak": 14,
+      "desc": "身體對齊 第 5 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "line6",
+      "branch": "line",
+      "branch_label": "身體對齊",
+      "tier": 6,
+      "name": "身體對齊 Lv6",
+      "requires": [
+        "line5"
+      ],
+      "min_xp": 2250,
+      "min_streak": 14,
+      "desc": "身體對齊 第 6 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "shoulder1",
+      "branch": "shoulder",
+      "branch_label": "肩部力量",
+      "tier": 1,
+      "name": "肩部力量 Lv1",
+      "requires": [],
+      "min_xp": 0,
+      "min_streak": 0,
+      "desc": "肩部力量 第 1 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "shoulder2",
+      "branch": "shoulder",
+      "branch_label": "肩部力量",
+      "tier": 2,
+      "name": "肩部力量 Lv2",
+      "requires": [
+        "shoulder1"
+      ],
+      "min_xp": 450,
+      "min_streak": 0,
+      "desc": "肩部力量 第 2 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "shoulder3",
+      "branch": "shoulder",
+      "branch_label": "肩部力量",
+      "tier": 3,
+      "name": "肩部力量 Lv3",
+      "requires": [
+        "shoulder2"
+      ],
+      "min_xp": 900,
+      "min_streak": 0,
+      "desc": "肩部力量 第 3 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "shoulder4",
+      "branch": "shoulder",
+      "branch_label": "肩部力量",
+      "tier": 4,
+      "name": "肩部力量 Lv4",
+      "requires": [
+        "shoulder3"
+      ],
+      "min_xp": 1350,
+      "min_streak": 0,
+      "desc": "肩部力量 第 4 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "shoulder5",
+      "branch": "shoulder",
+      "branch_label": "肩部力量",
+      "tier": 5,
+      "name": "肩部力量 Lv5",
+      "requires": [
+        "shoulder4"
+      ],
+      "min_xp": 1800,
+      "min_streak": 14,
+      "desc": "肩部力量 第 5 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "shoulder6",
+      "branch": "shoulder",
+      "branch_label": "肩部力量",
+      "tier": 6,
+      "name": "肩部力量 Lv6",
+      "requires": [
+        "shoulder5"
+      ],
+      "min_xp": 2250,
+      "min_streak": 14,
+      "desc": "肩部力量 第 6 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "balance1",
+      "branch": "balance",
+      "branch_label": "自由平衡",
+      "tier": 1,
+      "name": "自由平衡 Lv1",
+      "requires": [],
+      "min_xp": 0,
+      "min_streak": 0,
+      "desc": "自由平衡 第 1 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "balance2",
+      "branch": "balance",
+      "branch_label": "自由平衡",
+      "tier": 2,
+      "name": "自由平衡 Lv2",
+      "requires": [
+        "balance1"
+      ],
+      "min_xp": 450,
+      "min_streak": 0,
+      "desc": "自由平衡 第 2 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "balance3",
+      "branch": "balance",
+      "branch_label": "自由平衡",
+      "tier": 3,
+      "name": "自由平衡 Lv3",
+      "requires": [
+        "balance2"
+      ],
+      "min_xp": 900,
+      "min_streak": 0,
+      "desc": "自由平衡 第 3 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "balance4",
+      "branch": "balance",
+      "branch_label": "自由平衡",
+      "tier": 4,
+      "name": "自由平衡 Lv4",
+      "requires": [
+        "balance3"
+      ],
+      "min_xp": 1350,
+      "min_streak": 0,
+      "desc": "自由平衡 第 4 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "balance5",
+      "branch": "balance",
+      "branch_label": "自由平衡",
+      "tier": 5,
+      "name": "自由平衡 Lv5",
+      "requires": [
+        "balance4"
+      ],
+      "min_xp": 1800,
+      "min_streak": 14,
+      "desc": "自由平衡 第 5 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "balance6",
+      "branch": "balance",
+      "branch_label": "自由平衡",
+      "tier": 6,
+      "name": "自由平衡 Lv6",
+      "requires": [
+        "balance5"
+      ],
+      "min_xp": 2250,
+      "min_streak": 14,
+      "desc": "自由平衡 第 6 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "fear1",
+      "branch": "fear",
+      "branch_label": "落地與膽量",
+      "tier": 1,
+      "name": "落地與膽量 Lv1",
+      "requires": [],
+      "min_xp": 0,
+      "min_streak": 0,
+      "desc": "落地與膽量 第 1 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "fear2",
+      "branch": "fear",
+      "branch_label": "落地與膽量",
+      "tier": 2,
+      "name": "落地與膽量 Lv2",
+      "requires": [
+        "fear1"
+      ],
+      "min_xp": 450,
+      "min_streak": 0,
+      "desc": "落地與膽量 第 2 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "fear3",
+      "branch": "fear",
+      "branch_label": "落地與膽量",
+      "tier": 3,
+      "name": "落地與膽量 Lv3",
+      "requires": [
+        "fear2"
+      ],
+      "min_xp": 900,
+      "min_streak": 0,
+      "desc": "落地與膽量 第 3 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "fear4",
+      "branch": "fear",
+      "branch_label": "落地與膽量",
+      "tier": 4,
+      "name": "落地與膽量 Lv4",
+      "requires": [
+        "fear3"
+      ],
+      "min_xp": 1350,
+      "min_streak": 0,
+      "desc": "落地與膽量 第 4 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "fear5",
+      "branch": "fear",
+      "branch_label": "落地與膽量",
+      "tier": 5,
+      "name": "落地與膽量 Lv5",
+      "requires": [
+        "fear4"
+      ],
+      "min_xp": 1800,
+      "min_streak": 14,
+      "desc": "落地與膽量 第 5 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "fear6",
+      "branch": "fear",
+      "branch_label": "落地與膽量",
+      "tier": 6,
+      "name": "落地與膽量 Lv6",
+      "requires": [
+        "fear5"
+      ],
+      "min_xp": 2250,
+      "min_streak": 14,
+      "desc": "落地與膽量 第 6 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "core1",
+      "branch": "core",
+      "branch_label": "核心抗旋",
+      "tier": 1,
+      "name": "核心抗旋 Lv1",
+      "requires": [],
+      "min_xp": 0,
+      "min_streak": 0,
+      "desc": "核心抗旋 第 1 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "core2",
+      "branch": "core",
+      "branch_label": "核心抗旋",
+      "tier": 2,
+      "name": "核心抗旋 Lv2",
+      "requires": [
+        "core1"
+      ],
+      "min_xp": 450,
+      "min_streak": 0,
+      "desc": "核心抗旋 第 2 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "core3",
+      "branch": "core",
+      "branch_label": "核心抗旋",
+      "tier": 3,
+      "name": "核心抗旋 Lv3",
+      "requires": [
+        "core2"
+      ],
+      "min_xp": 900,
+      "min_streak": 0,
+      "desc": "核心抗旋 第 3 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "core4",
+      "branch": "core",
+      "branch_label": "核心抗旋",
+      "tier": 4,
+      "name": "核心抗旋 Lv4",
+      "requires": [
+        "core3"
+      ],
+      "min_xp": 1350,
+      "min_streak": 0,
+      "desc": "核心抗旋 第 4 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "core5",
+      "branch": "core",
+      "branch_label": "核心抗旋",
+      "tier": 5,
+      "name": "核心抗旋 Lv5",
+      "requires": [
+        "core4"
+      ],
+      "min_xp": 1800,
+      "min_streak": 14,
+      "desc": "核心抗旋 第 5 關：完成對應訓練日打卡後解鎖。"
+    },
+    {
+      "id": "core6",
+      "branch": "core",
+      "branch_label": "核心抗旋",
+      "tier": 6,
+      "name": "核心抗旋 Lv6",
+      "requires": [
+        "core5"
+      ],
+      "min_xp": 2250,
+      "min_streak": 14,
+      "desc": "核心抗旋 第 6 關：完成對應訓練日打卡後解鎖。"
+    }
+  ]
+}

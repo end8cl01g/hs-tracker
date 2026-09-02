@@ -1,0 +1,19 @@
+{
+  "name": "hs-tracker",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Press to Handstand Tracker \u2014 \u96e2\u7dda\u512a\u5148 PWA\uff08sql.js + GitHub Pages + GAS Proxy\uff09",
+  "scripts": {
+    "pretest": "node scripts/build.mjs",
+    "test": "node --test tests/",
+    "check": "node scripts/check.mjs",
+    "build": "node scripts/build.mjs",
+    "size": "node scripts/build.mjs --size-only",
+    "serve": "node scripts/serve.mjs",
+    "ship": "bash scripts/ship.sh"
+  },
+  "devDependencies": {
+    "sql.js": "1.14.2"
+  }
+}

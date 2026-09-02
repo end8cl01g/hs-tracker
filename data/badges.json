@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "updated_at": "2026-09-02T21:08:55.690Z",
+  "badges": [
+    {
+      "id": "first_log",
+      "name": "第一次訓練",
+      "icon": "🌱",
+      "metric": "total_sessions",
+      "op": ">=",
+      "value": 1,
+      "desc": "完成第一次打卡"
+    },
+    {
+      "id": "streak7",
+      "name": "一週不輟",
+      "icon": "🔥",
+      "metric": "streak_current",
+      "op": ">=",
+      "value": 7,
+      "desc": "連續 7 天"
+    },
+    {
+      "id": "streak30",
+      "name": "月度鐵人",
+      "icon": "🏆",
+      "metric": "streak_current",
+      "op": ">=",
+      "value": 30,
+      "desc": "連續 30 天"
+    },
+    {
+      "id": "sessions30",
+      "name": "三十次集滿",
+      "icon": "📚",
+      "metric": "total_sessions",
+      "op": ">=",
+      "value": 30,
+      "desc": "累計 30 次"
+    },
+    {
+      "id": "sessions100",
+      "name": "百次传说",
+      "icon": "💯",
+      "metric": "total_sessions",
+      "op": ">=",
+      "value": 100,
+      "desc": "累計 100 次"
+    },
+    {
+      "id": "xp1000",
+      "name": "破千點",
+      "icon": "⚡",
+      "metric": "total_xp",
+      "op": ">=",
+      "value": 1000,
+      "desc": "XP 達 1000"
+    },
+    {
+      "id": "xp5000",
+      "name": "五千點",
+      "icon": "🌕",
+      "metric": "total_xp",
+      "op": ">=",
+      "value": 5000,
+      "desc": "XP 達 5000"
+    },
+    {
+      "id": "xp12000",
+      "name": "萬二俱樂",
+      "icon": "🌟",
+      "metric": "total_xp",
+      "op": ">=",
+      "value": 12000,
+      "desc": "XP 達 12000"
+    },
+    {
+      "id": "tree12",
+      "name": "技能樹初開",
+      "icon": "🌳",
+      "metric": "skills_unlocked",
+      "op": ">=",
+      "value": 12,
+      "desc": "解鎖 12 個節點"
+    },
+    {
+      "id": "tree36",
+      "name": "全樹點亮",
+      "icon": "✨",
+      "metric": "skills_unlocked",
+      "op": ">=",
+      "value": 36,
+      "desc": "解鎖全部 36 節點"
+    },
+    {
+      "id": "level5",
+      "name": "战士階",
+      "icon": "🗡️",
+      "metric": "level",
+      "op": ">=",
+      "value": 5,
+      "desc": "等級達 Lv.5"
+    },
+    {
+      "id": "first_sync",
+      "name": "上雲一次",
+      "icon": "☁️",
+      "metric": "total_syncs",
+      "op": ">=",
+      "value": 1,
+      "desc": "成功同步一次"
+    }
+  ]
+}

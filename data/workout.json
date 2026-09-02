@@ -1,0 +1,459 @@
+{
+  "version": 1,
+  "updated_at": "2026-09-02T21:08:55.690Z",
+  "rest_days": [
+    0,
+    6
+  ],
+  "days_in_week": [
+    "sun",
+    "mon",
+    "tue",
+    "wed",
+    "thu",
+    "fri",
+    "sat"
+  ],
+  "phases": {
+    "phase0": {
+      "title": "除鏽重建",
+      "weeks": 4,
+      "days": {
+        "mon": [
+          {
+            "name": "手腕動態熱身",
+            "xp": 10,
+            "kind": "warmup",
+            "detail": "2 分鐘 ×2 組"
+          },
+          {
+            "name": "傾斜倒立 (牆 45°)",
+            "xp": 25,
+            "kind": "hold",
+            "detail": "5 × 20 秒"
+          },
+          {
+            "name": "烏龜式支撐",
+            "xp": 20,
+            "kind": "hold",
+            "detail": "4 × 15 秒"
+          },
+          {
+            "name": "pike push-up",
+            "xp": 20,
+            "kind": "strength",
+            "detail": "3 × 8"
+          }
+        ],
+        "tue": [
+          {
+            "name": "手腕流動",
+            "xp": 10,
+            "kind": "warmup",
+            "detail": "2 分鐘"
+          },
+          {
+            "name": "傾斜倒立",
+            "xp": 25,
+            "kind": "hold",
+            "detail": "5 × 25 秒"
+          },
+          {
+            "name": "死蟲",
+            "xp": 15,
+            "kind": "core",
+            "detail": "3 × 8/邊"
+          }
+        ],
+        "wed": [
+          {
+            "name": "肩胛仰臥推",
+            "xp": 15,
+            "kind": "strength",
+            "detail": "3 × 10"
+          },
+          {
+            "name": "傾斜倒立",
+            "xp": 25,
+            "kind": "hold",
+            "detail": "5 × 30 秒"
+          },
+          {
+            "name": "側棒",
+            "xp": 15,
+            "kind": "core",
+            "detail": "3 × 20 秒/邊"
+          }
+        ],
+        "thu": [
+          {
+            "name": "呼吸重置",
+            "xp": 10,
+            "kind": "breath",
+            "detail": "4 × 6 次"
+          },
+          {
+            "name": "牆面腳跟抬",
+            "xp": 20,
+            "kind": "strength",
+            "detail": "3 × 10"
+          },
+          {
+            "name": "傾斜倒立",
+            "xp": 25,
+            "kind": "hold",
+            "detail": "5 × 30 秒"
+          }
+        ],
+        "fri": [
+          {
+            "name": "全身熱身",
+            "xp": 10,
+            "kind": "warmup",
+            "detail": "3 分鐘"
+          },
+          {
+            "name": "倒立落地滾出",
+            "xp": 25,
+            "kind": "fear",
+            "detail": "5 次"
+          },
+          {
+            "name": "傾斜倒立計時",
+            "xp": 30,
+            "kind": "hold",
+            "detail": "累計 3 分鐘"
+          }
+        ]
+      }
+    },
+    "phase1": {
+      "title": "地基工程",
+      "weeks": 6,
+      "days": {
+        "mon": [
+          {
+            "name": "靠牆倒立",
+            "xp": 30,
+            "kind": "hold",
+            "detail": "5 × 30 秒"
+          },
+          {
+            "name": "肩推",
+            "xp": 25,
+            "kind": "strength",
+            "detail": "4 × 8"
+          },
+          {
+            "name": "空心體",
+            "xp": 15,
+            "kind": "core",
+            "detail": "3 × 20 秒"
+          }
+        ],
+        "tue": [
+          {
+            "name": "靠牆倒立離牆試探",
+            "xp": 35,
+            "kind": "balance",
+            "detail": "6 × 10 秒"
+          },
+          {
+            "name": "單臂平板",
+            "xp": 15,
+            "kind": "core",
+            "detail": "3 × 15 秒/邊"
+          },
+          {
+            "name": "橢圓腕環",
+            "xp": 10,
+            "kind": "warmup",
+            "detail": "2 分鐘"
+          }
+        ],
+        "wed": [
+          {
+            "name": "倒立靠牆計時",
+            "xp": 35,
+            "kind": "hold",
+            "detail": "累計 5 分鐘"
+          },
+          {
+            "name": "反背伸展",
+            "xp": 20,
+            "kind": "strength",
+            "detail": "3 × 8"
+          }
+        ],
+        "thu": [
+          {
+            "name": "自由倒立 (有保護)",
+            "xp": 40,
+            "kind": "balance",
+            "detail": "8 × 5 秒"
+          },
+          {
+            "name": "呼吸箱式",
+            "xp": 10,
+            "kind": "breath",
+            "detail": "4 × 6"
+          },
+          {
+            "name": "側棒",
+            "xp": 15,
+            "kind": "core",
+            "detail": "3 × 25 秒/邊"
+          }
+        ],
+        "fri": [
+          {
+            "name": "靠牆倒立 wobble 控制",
+            "xp": 40,
+            "kind": "fear",
+            "detail": "5 × 20 秒"
+          },
+          {
+            "name": "pike push-up",
+            "xp": 25,
+            "kind": "strength",
+            "detail": "4 × 10"
+          }
+        ]
+      }
+    },
+    "phase2": {
+      "title": "結構建設",
+      "weeks": 8,
+      "days": {
+        "mon": [
+          {
+            "name": "自由倒立",
+            "xp": 50,
+            "kind": "balance",
+            "detail": "8 × 5 秒"
+          },
+          {
+            "name": "落地控制 (bail)",
+            "xp": 20,
+            "kind": "fear",
+            "detail": "6 次"
+          }
+        ],
+        "tue": [
+          {
+            "name": "倒立掌根按壓",
+            "xp": 40,
+            "kind": "balance",
+            "detail": "6 × 8 秒"
+          },
+          {
+            "name": "肩推",
+            "xp": 30,
+            "kind": "strength",
+            "detail": "4 × 10"
+          },
+          {
+            "name": "反背伸展",
+            "xp": 20,
+            "kind": "strength",
+            "detail": "3 × 10"
+          }
+        ],
+        "wed": [
+          {
+            "name": "自由倒立計時",
+            "xp": 55,
+            "kind": "hold",
+            "detail": "累計 6 分鐘"
+          },
+          {
+            "name": "單腿平衡",
+            "xp": 20,
+            "kind": "core",
+            "detail": "3 × 20 秒/邊"
+          }
+        ],
+        "thu": [
+          {
+            "name": "踢腿上牆定位",
+            "xp": 40,
+            "kind": "balance",
+            "detail": "10 次"
+          },
+          {
+            "name": "呼吸重置",
+            "xp": 10,
+            "kind": "breath",
+            "detail": "4 × 6 次"
+          }
+        ],
+        "fri": [
+          {
+            "name": "自由倒立 wobble 修正",
+            "xp": 50,
+            "kind": "fear",
+            "detail": "6 × 8 秒"
+          },
+          {
+            "name": "手腕減載流動",
+            "xp": 10,
+            "kind": "warmup",
+            "detail": "3 分鐘"
+          }
+        ]
+      }
+    },
+    "phase3": {
+      "title": "進階工程",
+      "weeks": 8,
+      "days": {
+        "mon": [
+          {
+            "name": "自由倒立",
+            "xp": 60,
+            "kind": "balance",
+            "detail": "6 × 10 秒"
+          },
+          {
+            "name": "倒立 push-up (半程)",
+            "xp": 40,
+            "kind": "strength",
+            "detail": "4 × 5"
+          }
+        ],
+        "tue": [
+          {
+            "name": "單臂靠牆",
+            "xp": 45,
+            "kind": "hold",
+            "detail": "4 × 8 秒/邊"
+          },
+          {
+            "name": "側棒",
+            "xp": 20,
+            "kind": "core",
+            "detail": "3 × 30 秒/邊"
+          }
+        ],
+        "wed": [
+          {
+            "name": "自由倒立",
+            "xp": 60,
+            "kind": "balance",
+            "detail": "累計 8 分鐘"
+          },
+          {
+            "name": "掌根微調",
+            "xp": 30,
+            "kind": "balance",
+            "detail": "6 × 10 秒"
+          }
+        ],
+        "thu": [
+          {
+            "name": "倒立行走 (5 步)",
+            "xp": 50,
+            "kind": "fear",
+            "detail": "6 趟"
+          },
+          {
+            "name": "呼吸箱式",
+            "xp": 15,
+            "kind": "breath",
+            "detail": "4 × 8"
+          }
+        ],
+        "fri": [
+          {
+            "name": "踢線練習",
+            "xp": 40,
+            "kind": "balance",
+            "detail": "8 次"
+          },
+          {
+            "name": "肩推加重",
+            "xp": 35,
+            "kind": "strength",
+            "detail": "4 × 8"
+          }
+        ]
+      }
+    },
+    "phase4": {
+      "title": "精熟與變形",
+      "weeks": 99,
+      "days": {
+        "mon": [
+          {
+            "name": "自由倒立",
+            "xp": 75,
+            "kind": "balance",
+            "detail": "5 × 20 秒"
+          },
+          {
+            "name": "倒立 push-up",
+            "xp": 60,
+            "kind": "strength",
+            "detail": "4 × 6"
+          }
+        ],
+        "tue": [
+          {
+            "name": "單臂靠牆",
+            "xp": 60,
+            "kind": "hold",
+            "detail": "5 × 12 秒/邊"
+          },
+          {
+            "name": "circular 轉體準備",
+            "xp": 30,
+            "kind": "fear",
+            "detail": "4 次"
+          }
+        ],
+        "wed": [
+          {
+            "name": "自由倒立計時",
+            "xp": 80,
+            "kind": "hold",
+            "detail": "累計 10 分鐘"
+          },
+          {
+            "name": "掌心平衡微調",
+            "xp": 40,
+            "kind": "balance",
+            "detail": "6 × 15 秒"
+          }
+        ],
+        "thu": [
+          {
+            "name": "二轉 (drill)",
+            "xp": 55,
+            "kind": "fear",
+            "detail": "6 次"
+          },
+          {
+            "name": "呼吸重置",
+            "xp": 15,
+            "kind": "breath",
+            "detail": "4 × 8 次"
+          }
+        ],
+        "fri": [
+          {
+            "name": "自由倒立 (疲勞態)",
+            "xp": 65,
+            "kind": "balance",
+            "detail": "5 × 12 秒"
+          },
+          {
+            "name": "手腕強化",
+            "xp": 25,
+            "kind": "strength",
+            "detail": "3 × 12"
+          }
+        ]
+      }
+    }
+  }
+}
