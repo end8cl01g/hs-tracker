@@ -71,8 +71,20 @@ test('gas/.claspignore 不會把四個 .gs 擋掉（擋了就是 push 出空專�
 
 test('deploy-gas.mjs 解析不到 deploymentId 時會明確失敗而不是亂猜 URL', async () => {
   const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
-  assert.match(src, /無法從 list-deployments 解析 deploymentId/);
+  assert.match(src, /無法從 clasp 輸出解析 deploymentId/);
+  assert.match(src, /DEPLOYMENT_ID=/, '解析失敗要留一条手動指定的活路');
+  assert.match(src, /parseDeploymentId\(dep\) \|\| parseDeploymentId\(listed\)/, '兩個輸出都要試，別只認一種格式');
   assert.match(src, /bootstrap 失敗/);
   assert.match(src, /Content-Type': 'text\/plain;charset=utf-8'/, 'bootstrap 呼叫本身也要避 preflight');
   assert.match(src, /redirect: 'follow'/);
+});
+
+test('parseDeploymentId 認得 clasp 三種輸出格式（解析錯就是部署到別專案）', async () => {
+  const { parseDeploymentId } = await import('../scripts/deploy-gas.mjs');
+  const ID = 'AKfy3fQp3zKpQnGvHN3dTVNfJmLXQYnZqOg';
+  assert.equal(parseDeploymentId(`Cloud manifest for this deployment created.\nDeployment ID: ${ID}\nError Execution ID: 74f2a`), ID, 'clasp create-deployment 的人類可讀輸出');
+  assert.equal(parseDeploymentId(JSON.stringify([{ deploymentId: ID, version: 2 }], null, 2)), ID, 'clasp list-deployments 的 JSON 輸出');
+  assert.equal(parseDeploymentId('{"deploymentId":"' + ID + '"}'), ID, '單行 JSON');
+  assert.equal(parseDeploymentId('nothing useful here'), null, '解析不到時必須回 null（腳本才會明確報錯）');
+  assert.equal(parseDeploymentId(''), null);
 });

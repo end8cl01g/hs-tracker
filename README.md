@@ -12,7 +12,7 @@
 
 ```bash
 npm ci
-npm run check && npm test        # 靜態閉環 47 項 + 68 項測試
+npm run check && npm test        # 靜態閉環 47 項 + 69 項測試
 npm run build && npm run preview   # 產生 dist/ 並開 http://localhost:8080
 ```
 
@@ -107,7 +107,7 @@ node scripts/deploy-gas.mjs --yes        # 建專案 → push → 建部署 → 
 ## 測試怎麼跑
 
 ```bash
-npm test                 # db / game-core / sync / sw / site / gas / gas-boot / scripts，共 68 項
+npm test                 # db / game-core / sync / sw / site / gas / gas-boot / scripts，共 69 項
 npm run check            # 47 項靜態閉環（引用、PRECACHE、GAS 紅線、manifest、CDN 殘留）
 npm run build && npm run size
 ```

@@ -35,6 +35,14 @@ const run = (cmd, args, opts = {}) => {
 };
 const clasp = (args, opts) => run('clasp', ['-A', AUTH, ...args], opts);
 
+export function parseDeploymentId(text) {
+  const t = String(text || '');
+  const labeled = t.match(/deployment\s*id"?\s*[:=]\s*"?([A-Za-z0-9_-]{10,})"?/i);
+  if (labeled) return labeled[1];
+  const bare = t.match(/\b([A-Za-z0-9_-]{20,})\b(?!\.)/);   // 例：AKfy3fQp3zKpQnGvHN3dTVNfJmLXQYnZqOg
+  return bare ? bare[1] : null;
+}
+
 function readClaspJson() {
   const p = join(GAS, '.clasp.json');
   return existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null;
@@ -114,9 +122,8 @@ async function main() {
   const dep = clasp(['create-deployment', '-d', 'init']).trim();
   log('  ' + dep.split('\n').slice(-2).join(' / '));
   const listed = clasp(['list-deployments', cfg.scriptId]).trim();
-  const m = listed.match(/([a-f0-9-]{20,})/i);
-  const deploymentId = m ? m[1] : null;
-  if (!deploymentId) throw new Error('無法從 list-deployments 解析 deploymentId：\n' + listed);
+  const deploymentId = process.env.DEPLOYMENT_ID || parseDeploymentId(dep) || parseDeploymentId(listed);
+  if (!deploymentId) throw new Error('無法從 clasp 輸出解析 deploymentId，請手動指定後重跑：DEPLOYMENT_ID=xxx node scripts/deploy-gas.mjs --yes\n--- create-deployment 輸出 ---\n' + dep + '\n--- list-deployments 輸出 ---\n' + listed);
   const execUrl = `https://script.google.com/macros/s/${deploymentId}/exec`;
   log('  端點：' + execUrl);
 
