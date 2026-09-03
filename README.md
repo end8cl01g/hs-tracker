@@ -96,11 +96,17 @@ scripts/              build.mjs check.mjs serve.mjs preview.mjs ship.sh deploy-g
 
 ## 上線（前端）
 
+**現況：已上線 →** <https://end8cl01g.github.io/hs-tracker/>（public repo `end8cl01g/hs-tracker`，
+Pages `build_type: workflow`，`https_enforced: true`；線上 `sw.js` 的 `VERSION` = 當前 commit sha）。
+
 需要一個 **fine-grained PAT**（只給這個 repo：`Contents: Read and write` ＋ `Administration: Read and write`）。
+用傳統 `ghp_` token 也能推，但那是帳號級全權限（含 `delete_repo`、`admin:org`）⇒ 推完立刻去
+<https://github.com/settings/tokens> 撤銷，換發 fine-grained。
 
 ```bash
-export GITHUB_TOKEN=github_pat_xxx      # 或寫進 ~/.config/gh-token 後 export GH_TOKEN_FILE=...
-REPO_NAME=hs-tracker bash scripts/ship.sh
+export GITHUB_TOKEN=github_pat_xxx      # 或 GH_TOKEN_FILE=~/.config/gh-token，或落盤 .deploy/github-token（0600、已 gitignore）
+REPO=hs-tracker OWNER=end8cl01g bash scripts/ship.sh
+GH_TOKEN_NONE=1 bash scripts/ship.sh   # 暫時無視落盤 token（測試用）
 ```
 
 腳本會：跑檢查與測試 → `git init/commit` → 建 public repo → push → 用 API 把 Pages 設成
