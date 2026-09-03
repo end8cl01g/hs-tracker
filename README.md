@@ -12,7 +12,7 @@
 
 ```bash
 npm ci
-npm run check && npm test        # 靜態閉環 47 項 + 69 項測試
+npm run check && npm test        # 靜態閉環 58 項 + 81 項測試
 npm run build && npm run preview   # 產生 dist/ 並開 http://localhost:8080
 ```
 
@@ -93,8 +93,26 @@ node scripts/deploy-gas.mjs --yes        # 建專案 → push → 建部署 → 
 | 1.8 | `CACHE_NAME='hs-tracker-v2'` 寫死 → 改版無效 | 版本由 build 注入；CI 断言 `dist/sw.js` 含本次 sha；`sw.test.mjs` 驗舊 cache 被清 |
 | 1.9 | 未設 URL／離線時「silently return」＋ SW 吞錯 → 會假裝已同步 | `disabled`/`error` 為可見狀態，`lastError` 顯示在同步列；`sync.test.mjs` 4 條擋關 |
 | 2.x | GAS：`application/json` 觸發 preflight、subpath 會導向登入頁、CacheService 寫 24h 不可能、回傳表格 URL | text/plain ＋ `redirect:'follow'`；只用 body；快取 6h 上限＋Properties 備援；`gas.test.mjs` 逐條斷言 |
+| 3.1 | **首開會卡在載入畫面**：markup 用 `hidden` 屬性、JS 卻用 `classList` 切 class，兩套機制互不相干 → `showApp()` 等於沒做事（47 項靜態檢查全綠也照樣放過） | 全站顯隱統一用 `el.hidden = bool`；新增 `tests/dom.test.mjs`：用真實 `index.html` + 真實 `css/style.css` 建迷你 DOM 跑真 `ui.js`/`animations.js`，斷言「按了之後真的看得見」；`check.mjs` 加三條政策守住不得混用。反向驗證：把 `showApp` 改回 classList 版，DOM 測試立刻紅 |
+| 3.2 | 軟刪除的日誌還被算進「完成天數」（`getTotalWorkoutsCompleted` 漏 `deleted = 0`，與 `getWorkoutStreak` 不一致） | 補過濾；`check.mjs` 逐個統計函式要求帶 `deleted = 0` |
+| 3.3 | push 只推一批（200 列）就回報「已同步」，且雲端 `truncated`（單次 500 列上限）被前端丟掉 → 大佇列永久殘留卻顯示綠燈 | `_pushRounds` 連續推到清空，零進度即停；狀態分級 `ok / partial / error`，UI 有 🟡「未推完」；`sync.test.mjs` 加 3 條（全拒收→error、沒 ack→partial、雲端 truncated→partial） |
 | 2.6 | （實作時自己踩到的）`bootstrap` 寫在密鑰閘門**後面** → 還沒密鑰時永遠進不去，初始化死迴圈 | `handle_` 先放行 `bootstrap`（僅限未設定密鑰時），`tests/gas-boot.test.mjs` 跑真實 `handle_` 走完「未初始化→ping 可判讀→錯 token 拒→對 token 設密鑰→通道關閉→舊密鑰才能 push」；`check.mjs` 第 47 項守住順序 |
 | — | 免費 Pages 只能 public repo → 怕洩憑證 | `.gitignore` 擋 `.clasprc.json`/`.clasp.json`；`exportAll()` 主動剔除 `gas_secret`（有測試） |
+
+## 還缺什麼（老實清單，按代價排序）
+
+| 缺 | 影響 | 要動多少 |
+|---|---|---|
+| 真瀏覽器／真機驗證 | 本沙箱無瀏覽器：SW 安裝與更新、iOS 主畫面、7 天 eviction、觸控與動畫流暢度**全未實測** | 0 行代碼，需你上線後按 4 項檢查回報 |
+| 刪除鏈路不完整 | `deleteWorkoutLog()` 是死代碼（UI 無入口）；且 `exercise_logs` 用硬 `DELETE`、無 tombstone → 一旦接上刪除，雲端孤兒列會在下次 pull 復活 | migration v3 給各表加 `deleted` + pull 端套 tombstone，約 80 行 |
+| `settings` 不跨裝置 | GAS 有 `settings` 的主鍵分支、前端 `TABLES` 卻沒有 settings → `startDate`/`currentPhase` 不同步，換手機從 Phase 0 重來 | 加 settings 白名單同步，約 40 行 |
+| 衝突只有計數 | `conflicts` 表有明細，但 UI 只顯示「衝突保留：N 筆」，看不到也一鍵採不回遠端版 | 一個列表 + 兩個按鈕 |
+| 雲端備份只能上不能回 | `action=restore`／`latestBackup_()` 已存在，前端沒按鈕 → 換機只能靠手動匯出檔 | 接一個按鈕 + 覆蓋確認 |
+| a11y 只到一半 | Esc 已補；仍無 focus trap、`role="tablist"`/`aria-selected`、跳過導航連結 | 約 30 行 |
+| `Changes` 表只 append | 長期會變很慢（GAS 單表上限 1,000 萬列），沒有压缩／清理觸發器 | 一個每週 time-driven trigger |
+| 沒有 LICENSE | public repo 沒授權條款＝預設「保留所有權利」，別人 fork 法律上不能用 | 加一個檔案 |
+| 沒有 E2E／視覺回歸 | `ui.js` 的渲染靠迷你 DOM 測，真實排版、字體溢位、窄屏 320px 沒覆蓋 | 需裝 Playwright＋Chromium（本沙箱無瀏覽器） |
+| 尚未上線 | 沒有 PAT（前端沒推）與放行（GAS 沒部署），目前全部結論只適用本地 `dist/` | 你两句話的差別 |
 
 ## 已知取捨（不是 bug）
 
@@ -107,8 +125,8 @@ node scripts/deploy-gas.mjs --yes        # 建專案 → push → 建部署 → 
 ## 測試怎麼跑
 
 ```bash
-npm test                 # db / game-core / sync / sw / site / gas / gas-boot / scripts，共 69 項
-npm run check            # 47 項靜態閉環（引用、PRECACHE、GAS 紅線、manifest、CDN 殘留）
+npm test                 # db / game-core / sync / sw / site / gas / gas-boot / dom / scripts，共 81 項
+npm run check            # 58 項靜態閉環（引用、PRECACHE、GAS 紅線、顯隱機制、CDN 殘留）
 npm run build && npm run size
 ```
 

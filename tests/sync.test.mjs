@@ -119,9 +119,11 @@ test('push：單次 ≤200 列、雲端 ack 後才 markSynced；被拒的列留�
     const pushBody = seen.find((b) => b.action === 'push');
     assert.ok(pushBody.tables.exercise_logs.length <= 200, '單次不得超過 BATCH_ROWS=200');
     assert.ok(res.pushed > 0);
+    // 雲端每輪只 ack 150 → 必須連續推好幾輪直到清空，不能推一輪就說「已同步」
+    assert.ok(seen.filter((b) => b.action === 'push').length >= 2, '大佇列要連續推多輪：' + JSON.stringify(res));
     const after = await ctx.DataLayer.getUnsyncedRows();
     assert.equal(after.workout_logs.length, 0, '全部 ack → 清空');
-    assert.ok(after.exercise_logs.length > 0, '雲端只 ack 150 → 其餘必須還在佇列（不能假裝成功）');
+    assert.equal(after.exercise_logs.length, 0, '連續推到清空（只 ack 150/輪也要排乾）');
     assert.equal(ctx.SyncManager.state.status, 'ok');
   } finally { cleanup(); }
 });
@@ -172,5 +174,71 @@ test('GASProxy 回傳的 config 走 data/ 相對路徑（非 CDN）', async () =
     await ctx.GASProxy.config(['workout']);
     assert.ok(ctx.GameEngine.workoutData.days_in_week, 'config 失敗也不能打斷本地功能');
     assert.ok(!/cdnjs|jsdelivr|unpkg/.test(JSON.stringify(ctx.GameEngine.configMeta)), '設定檔來源不得是外部 CDN');
+  } finally { cleanup(); }
+});
+
+// ---- 本輪補：push 佇列要排乾，不能推一輪就宣稱成功 ----
+const seed = async (ctx, days = 2, ex = 3) => {
+  for (let i = 0; i < days; i++) {
+    await ctx.DataLayer.logWorkout({
+      date: `2026-09-0${i + 1}`, phase: 0, dayType: 'mon', completed: 1,
+      exercises: Array.from({ length: ex }, (_, j) => ({ name: `E${j}`, xp: 1, completed: true })),
+    });
+  }
+};
+
+test('雲端整批拒收 → status=error、lastError 說清楚、佇列不得被清', async () => {
+  const seen = [];
+  const { ctx, cleanup } = await boot((url, init) => {
+    const body = JSON.parse(init.body);
+    seen.push(body);
+    if (body.action !== 'push') return json({ ok: true, rows: {} });
+    return json({ ok: true, acked: {}, rejected: [{ table: 'exercise_logs', reason: 'row-too-large' }] });
+  });
+  try {
+    await seed(ctx, 2, 2);
+    const before = await ctx.DataLayer.getUnsyncedRows();
+    assert.ok(before.exercise_logs.length > 0);
+    const res = await ctx.SyncManager.fullSync();
+    assert.equal(res.rejected, 1, '拒收數要進回報');
+    assert.equal(ctx.SyncManager.state.status, 'error');
+    assert.match(ctx.SyncManager.state.lastError, /拒收/);
+    const after = await ctx.DataLayer.getUnsyncedRows();
+    assert.equal(after.exercise_logs.length, before.exercise_logs.length, '被拒的列必須還原封不動留在佇列');
+    assert.equal(seen.filter((b) => b.action === 'push').length, 1, '零進度時要停，不要在原地打轉');
+  } finally { cleanup(); }
+});
+
+test('雲端收了但沒 ack 任何 id → status=partial（不是 ok）', async () => {
+  const { ctx, cleanup } = await boot((url, init) => {
+    const body = JSON.parse(init.body);
+    if (body.action !== 'push') return json({ ok: true, rows: {} });
+    return json({ ok: true, acked: {}, rejected: [] });
+  });
+  try {
+    await seed(ctx, 1, 2);
+    const res = await ctx.SyncManager.fullSync();
+    assert.equal(res.pushed, 0);
+    assert.equal(res.truncated, true, '沒推完要標 truncated');
+    assert.equal(ctx.SyncManager.state.status, 'partial');
+    assert.match(ctx.SyncManager.state.lastError, /沒推完|再按一次同步/);
+    assert.ok((await ctx.DataLayer.getUnsyncedRows()).exercise_logs.length > 0, '佇列要還在');
+  } finally { cleanup(); }
+});
+
+test('雲端回 truncated（單次 500 列上限）→ 也要留下可见痕跡', async () => {
+  const { ctx, cleanup } = await boot((url, init) => {
+    const body = JSON.parse(init.body);
+    if (body.action !== 'push') return json({ ok: true, rows: {} });
+    const acked = {};
+    for (const [t, rows] of Object.entries(body.tables)) acked[t] = { ids: rows.map((r) => r.id || r.skill_id) };
+    return json({ ok: true, acked, rejected: [], truncated: true });
+  });
+  try {
+    await seed(ctx, 1, 2);
+    const res = await ctx.SyncManager.fullSync();
+    assert.ok(res.pushed > 0, 'ack 到的要標記成已同步');
+    assert.equal(res.truncated, true, '雲端說截斷了就要傳到回報');
+    assert.equal(ctx.SyncManager.state.status, 'partial');
   } finally { cleanup(); }
 });

@@ -97,6 +97,51 @@ for (const f of [...frontFiles, 'vendor/sql-wasm.wasm', 'vendor/sql-wasm.js', ..
 }
 pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(bytes / 1e9 * 100).toFixed(2)}%）`);
 
+// 12) 顯隱機制：markup 用 hidden 屬性，JS 就只能用 el.hidden（上一輪首開卡死就是混用两套）
+{
+  const jsFiles = readdirSync(join(ROOT, 'js')).filter((f) => f.endsWith('.js'));
+  const mixing = jsFiles.filter((f) => /classList\s*\.\s*(add|remove|toggle)\(\s*['"]hidden['"]/.test(read('js/' + f)));
+  T(mixing.length === 0, '顯隱只用 hidden 屬性（無 classList 切 .hidden）', `混用顯隱機制：${mixing.join(', ')} — classList 對 hidden 屬性無效，畫面會永遠藏著`);
+  const css = read('css/style.css');
+  T(/\[hidden\]\s*\{[^}]*display:\s*none\s*!important/.test(css), 'CSS 有 [hidden]{display:none!important}', 'CSS 少了 [hidden] 規則：hidden 屬性變成裝飾');
+  T(/\.hidden\s*=\s*(true|false)/.test(jsFiles.map((f) => read('js/' + f)).join('\n')), 'JS 用 el.hidden = true/false 切換', 'JS 沒用 el.hidden 屬性切換顯隱');
+  const html = read('index.html');
+  const hiddenEls = [...html.matchAll(/<\w+\b[^>]*\bid="([^"]+)"[^>]*\shidden(?:\s|>)/g)].map((m) => m[1]);
+  T(hiddenEls.length >= 4, `markup 以 hidden 屬性初始藏起 ${hiddenEls.length} 個容器`, '首開要藏起來的容器沒用 hidden 屬性（會閃現未完成畫面）');
+}
+
+// 13) 軟刪除一致性：統計/列表查詢必須過濾 deleted（用行擷取，避免吃到隔壁函式）
+{
+  const dl = read('js/data-layer.js').split('\n');
+  const fnBody = (name) => {
+    const i = dl.findIndex((l) => l.includes(name + '('));
+    if (i < 0) return null;
+    let out = '';
+    for (let j = i; j < dl.length; j++) {
+      out += dl[j] + '\n';
+      if (/\}\s*[,;]?\s*$/.test(dl[j])) break;
+    }
+    return out;
+  };
+  for (const fn of ['getTotalWorkoutsCompleted', 'getRecentWorkouts', 'getWorkoutStreak', 'getWorkoutLog']) {
+    const body = fnBody(fn);
+    if (body === null) { T(false, '', `data-layer 找不到 ${fn}()`); continue; }
+    const usesLogs = /workout_logs/.test(body);
+    const needsFilter = ['getTotalWorkoutsCompleted', 'getRecentWorkouts', 'getWorkoutStreak'].includes(fn);
+    T(!usesLogs || !needsFilter || /deleted\s*=\s*0/.test(body),
+      `${fn}() 已過濾軟刪除列`,
+      `${fn}() 查了 workout_logs 卻沒帶 deleted = 0 → 已刪紀錄還被算進統計/列表`);
+  }
+}
+
+// 14) 同步佇列要排乾（雲端單次 500 列、本地單次 200 列）
+{
+  const sm = read('js/sync-manager.js');
+  T(/_pushRounds\(/.test(sm) && /_pushOnce\(/.test(sm), 'push 連續多輪直到佇列清空', 'push 只推一輪：大佇列會被當成「已同步」');
+  T(/status:\s*report\.rejected \? 'error' : report\.truncated \? 'partial' : 'ok'/.test(sm), '同步狀態分級 ok/partial/error', '同步狀態只有成功/失敗，殘留佇列會被藏起來');
+  T(/partial:/.test(read('js/ui.js')), 'UI 有 partial 標籤', 'UI 沒接 partial 狀態 → 使用者看到的是「檢查中」');
+}
+
 console.log('靜態閉環檢查');
 for (const l of pass) console.log('  ✓ ' + l);
 for (const l of warn) console.log('  ! ' + l);

@@ -17,16 +17,18 @@
       });
     },
 
+    // 顯隱一律用 hidden **屬性**（markup 用 `hidden`，CSS 有 `[hidden]{display:none!important}`）；
+    // 用 classList 切換 class 對屬性無效，會讓首開卡死在載入畫面（本輪 DOM 測試抓到的真 bug）
     hideLoading(msg) {
       const l = $('loading-screen'); if (!l) return;
       if (msg) {
-        l.classList.remove('hidden');
-        l.querySelector('.loading-text').textContent = '啟動失敗';
-        const e = $('loading-error'); e.textContent = msg; e.classList.remove('hidden');
-      } else l.classList.add('hidden');
+        l.hidden = false;
+        const lt = l.querySelector('.loading-text'); if (lt) lt.textContent = '啟動失敗';
+        const e = $('loading-error'); if (e) { e.textContent = msg; e.hidden = false; }
+      } else l.hidden = true;
     },
-    showApp() { $('app')?.classList.remove('hidden'); },
-    showOnboarding() { $('onboarding-modal')?.classList.remove('hidden'); },
+    showApp() { const a = $('app'); if (a) a.hidden = false; },
+    showOnboarding() { const o = $('onboarding-modal'); if (o) o.hidden = false; },
 
     renderAll(vm) {
       this.vm = vm;
@@ -122,8 +124,8 @@
         <div class="btn-row"><button class="btn-primary" id="skill-save" type="button">保存</button>
         ${st.unlocked ? '' : '<button class="btn-secondary" id="skill-unlock" type="button">標記解鎖 (+50 XP)</button>'}
         <button class="btn-secondary" id="skill-close" type="button">關閉</button></div>`;
-      $('skill-modal').classList.remove('hidden');
-      $('skill-close').onclick = () => $('skill-modal').classList.add('hidden');
+      $('skill-modal').hidden = false;
+      $('skill-close').onclick = () => this.closeSkillAndRefresh();
       $('skill-save').onclick = async () => {
         await global.DataLayer.setSkillMeta(skillId, { videoUrl: $('skill-video').value, notes: $('skill-notes').value });
         this.toast('已保存'); this.closeSkillAndRefresh();
@@ -135,7 +137,7 @@
         this.closeSkillAndRefresh();
       };
     },
-    closeSkillAndRefresh() { $('skill-modal')?.classList.add('hidden'); this.checks.clear(); },
+    closeSkillAndRefresh() { const m = $('skill-modal'); if (m) m.hidden = true; this.checks.clear(); },
 
     renderAchievements(vm) {
       const s = vm.badgeStats || {};
@@ -175,6 +177,7 @@
         init: ['⏳', '檢查中', 'init'], disabled: ['☁️', '未啟用雲端（純離線）', 'off'],
         syncing: ['🔄', '同步中…', 'busy'], retrying: ['️', '重試中…', 'busy'],
         ok: ['✅', '已同步', 'ok'], error: ['❗', `同步失敗：${state.lastError || ''}`, 'bad'],
+        partial: ['🟡', `未推完：${state.lastError || '還有殘留佇列'}`, 'busy'],
       };
       const [icon, text, tone] = map[state.status] || map.init;
       const bar = $('sync-bar'); if (bar) bar.dataset.status = tone;
@@ -187,8 +190,8 @@
 
     toast(msg, bad = false) {
       const t = $('toast'); if (!t) return;
-      t.textContent = msg; t.className = `toast ${bad ? 'bad' : ''}`;
-      clearTimeout(this._tt); this._tt = setTimeout(() => t.classList.add('hidden'), 2600);
+      t.textContent = msg; t.className = `toast ${bad ? 'bad' : ''}`; t.hidden = false;
+      clearTimeout(this._tt); this._tt = setTimeout(() => { t.hidden = true; }, 2600);
     },
 
     async refresh() {

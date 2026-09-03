@@ -6,6 +6,7 @@
 
   const BATCH_ROWS = 200;              // GAS 單次執行上限 6 分鐘，批次要小
   const RETRY_DELAYS = [1000, 4000, 16000];
+  const PUSH_ROUNDS = 5;               // 一次 fullSync 最多連續推幾輪（雲端單次 ≤500 列）
 
   const SyncManager = {
     state: { status: 'init', lastSyncAt: null, lastError: null, pending: 0, conflicts: 0, disabled: false },
@@ -23,6 +24,58 @@
       const pending = Object.values(rows).reduce((n, r) => n + r.length, 0);
       this._set({ pending });
       return pending;
+    },
+
+    /** 連續推幾輪把佇列清掉；到上限或零進度就回報 partial，不要顯示「已同步」騙人 */
+    async _pushRounds(report) {
+      for (let round = 0; round < PUSH_ROUNDS; round++) {
+        const before = report.pushed;
+        if (!await this._pushOnce(report)) return;
+        if (report.pushed === before) { report.truncated = true; return; }   // 零進度：別在原地打轉
+      }
+      report.truncated = true;
+    },
+
+    /** 推一批；回傳「是否還有得推」。整批被拒（零進度）時也停，別在原地打轉。 */
+    async _pushOnce(report) {
+      const unsynced = await global.DataLayer.getUnsyncedRows();
+      const batch = {};
+      let total = 0, remaining = 0;
+      for (const [tbl, rows] of Object.entries(unsynced)) {
+        if (!rows.length) continue;
+        batch[tbl] = rows.slice(0, BATCH_ROWS);
+        total += batch[tbl].length;
+        remaining += Math.max(0, rows.length - BATCH_ROWS);
+      }
+      if (!total) return false;
+      let marked = 0;
+      let lastErr = null;
+      for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+        report.attempts = Math.max(report.attempts || 0, attempt + 1);
+        try {
+          const ack = await global.GASProxy.call('push', { tables: batch });
+          for (const [tbl, res] of Object.entries((ack && ack.acked) || {})) {
+            const ids = (res && res.ids) || batch[tbl].map((r) => r[global.DataLayer.TABLES[tbl].pk]);
+            await global.DataLayer.markSynced(tbl, ids);
+            report.pushed += ids.length;
+            marked += ids.length;
+          }
+          if (ack && ack.rejected && ack.rejected.length) {
+            report.rejected = (report.rejected || 0) + ack.rejected.length;
+            this._set({ lastError: `雲端拒收 ${ack.rejected.length} 列（格式/權限）` });
+          }
+          if (ack && ack.truncated) report.truncated = true;
+          // 「還得再推」= 本批之後還有量，或雲端沒 ack 完這一批（ack 漏列不能當成推完了）
+          return remaining > 0 || marked < total;
+        } catch (e) {
+          lastErr = e;
+          if (attempt === RETRY_DELAYS.length) break;
+          const wait = RETRY_DELAYS[attempt];
+          this._set({ status: 'retrying', lastError: e.message });
+          await new Promise((r) => setTimeout(r, wait));
+        }
+      }
+      throw lastErr;
     },
 
     /** 一輪完整同步：先 pull（遠端較新者覆蓋本地）再 push。回傳彙報。 */
@@ -53,41 +106,19 @@
         }
 
         // ---- push（含退避重試）----
-        for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
-          report.attempts = attempt + 1;
-          const unsynced = await global.DataLayer.getUnsyncedRows();
-          const batch = {};
-          let total = 0;
-          for (const [tbl, rows] of Object.entries(unsynced)) {
-            if (rows.length) { batch[tbl] = rows.slice(0, BATCH_ROWS); total += batch[tbl].length; }
-          }
-          if (!total) break;
-          try {
-            const ack = await global.GASProxy.call('push', { tables: batch });
-            for (const [tbl, res] of Object.entries((ack && ack.acked) || {})) {
-              const ids = (res && res.ids) || batch[tbl].map((r) => r[global.DataLayer.TABLES[tbl].pk]);
-              await global.DataLayer.markSynced(tbl, ids);
-              report.pushed += ids.length;
-            }
-            if (ack && ack.rejected && ack.rejected.length) {
-              console.warn('[sync] 雲端拒收：', ack.rejected);
-              this._set({ lastError: `雲端拒收 ${ack.rejected.length} 列（格式/權限）` });
-            }
-            break;
-          } catch (e) {
-            if (attempt === RETRY_DELAYS.length) throw e;
-            const wait = RETRY_DELAYS[attempt];
-            console.warn(`[sync] push 第 ${attempt + 1} 次失敗（${e.message}），${wait}ms 後重試`);
-            this._set({ status: 'retrying', lastError: e.message });
-            await new Promise((r) => setTimeout(r, wait));
-          }
-        }
+        await this._pushRounds(report);
 
         await global.DataLayer.setSetting('last_sync_at', new Date().toISOString());
         // 「首次雲端同步」徽章計數源：用 setting 計數，不發 XP（避免用同步刷等級）
         const n = Number((await global.DataLayer.getSetting('total_syncs')) || 0) + 1;
         await global.DataLayer.setSetting('total_syncs', String(n));
-        this._set({ status: 'ok', lastSyncAt: new Date().toISOString(), lastError: null, conflicts: report.conflicts });
+        this._set({
+          status: report.rejected ? 'error' : report.truncated ? 'partial' : 'ok',
+          lastSyncAt: new Date().toISOString(),
+          lastError: report.rejected ? `雲端拒收 ${report.rejected} 列，仍留在待同步佇列`
+            : report.truncated ? `還有些列沒推完（單次上限 ${PUSH_ROUNDS} 輪 × ${BATCH_ROWS} 列），再按一次同步即可` : null,
+          conflicts: report.conflicts,
+        });
         await this.refreshPending();
         this._notify();
         return report;

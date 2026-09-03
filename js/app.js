@@ -115,8 +115,15 @@
         if (!date) { global.Animations.shake($('onboard-start-date')); return global.UI.toast('請選起始日期', true); }
         await global.DataLayer.setSetting('startDate', date);
         await global.DataLayer.setSetting('currentPhase', $('onboard-phase').value);
-        $('onboarding-modal')?.classList.add('hidden');
+        const om = $('onboarding-modal'); if (om) om.hidden = true;
         await App.refresh();
+      });
+
+      // ---- 鍵盤：Esc 關 modal（無 focus trap 至少能退出去）----
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key !== 'Escape') return;
+        if (!$('skill-modal')?.hidden) { global.UI.closeSkillAndRefresh(); return; }
+        if (!$('onboarding-modal')?.hidden) return;   // onboarding 未完成時不給關
       });
 
       // ---- Today ----

@@ -22,9 +22,9 @@
       const ov = $('level-up-overlay'); if (!ov) return;
       const t = $('level-up-title');
       if (t) t.textContent = `Lv.${level.level} ${level.title || ''}`;
-      ov.classList.remove('hidden'); ov.classList.add('show');
+      ov.hidden = false; ov.classList.add('show');
       this.confetti();
-      setTimeout(() => { ov.classList.add('hidden'); ov.classList.remove('show'); }, 2200);
+      setTimeout(() => { ov.hidden = true; ov.classList.remove('show'); }, 2200);
     },
 
     /** 24 片 DOM confetti；減少動態內容時直接不播放 */

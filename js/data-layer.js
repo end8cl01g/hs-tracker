@@ -75,9 +75,10 @@
       });
     },
     getWorkoutLog(iso) { return Promise.resolve(DB.getRow('SELECT * FROM workout_logs WHERE log_date = ?', [iso])); },
-    getRecentWorkouts(n = 14) { return Promise.resolve(DB.query('SELECT * FROM workout_logs ORDER BY log_date DESC LIMIT ?', [Number(n)])); },
+    getRecentWorkouts(n = 14) { return Promise.resolve(DB.query('SELECT * FROM workout_logs WHERE deleted = 0 ORDER BY log_date DESC LIMIT ?', [Number(n)])); },
     getTotalWorkoutsCompleted() {
-      return Promise.resolve(Number(DB.getRow('SELECT COUNT(*) AS c FROM workout_logs WHERE completed = 1')?.c || 0));
+      // deleted = 0：軟刪除的日誌不能還算進「完成天數」（曾與 getWorkoutStreak 不一致）
+      return Promise.resolve(Number(DB.getRow('SELECT COUNT(*) AS c FROM workout_logs WHERE completed = 1 AND deleted = 0')?.c || 0));
     },
     /** streak 只吃 completed=1 且未刪除的 log_date */
     async getWorkoutStreak(todayISO) {

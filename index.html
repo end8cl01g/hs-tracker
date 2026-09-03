@@ -23,7 +23,7 @@
     <p class="loading-sub" id="loading-error" hidden></p>
   </div>
 
-  <div id="onboarding-modal" class="modal" hidden>
+  <div id="onboarding-modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="初始設定">
     <div class="modal-content">
       <h2>🤸 歡迎，未來的倒立者</h2>
       <p>設定訓練起始日（用來推算目前階段）：</p>
@@ -158,7 +158,7 @@
     <div id="level-up-overlay" class="level-up-overlay" hidden>
       <div class="level-up-content"><span>⬆️ LEVEL UP!</span><span id="level-up-title"></span></div>
     </div>
-    <div id="skill-modal" class="modal" hidden><div class="modal-content" id="skill-modal-content"></div></div>
+    <div id="skill-modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="技能明細"><div class="modal-content" id="skill-modal-content"></div></div>
     <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
   </div>
 
