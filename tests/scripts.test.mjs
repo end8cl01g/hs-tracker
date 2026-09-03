@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname, basename } from 'node:path';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { chmodSync, existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const run = (cmd, args, env = {}) => {
@@ -303,4 +303,13 @@ test('計劃產生器有 npm script，且 PLAN.md 被 README 指向（規範要�
   const readme = readFileSync(join(ROOT, 'README.md'), 'utf8');
   assert.match(readme, /PLAN\.md/, 'README 要指向規範檔');
   assert.match(readme, /不要手改/, '要寫明資料檔是編譯結果');
+});
+
+test('每個會叫本地二進位的 npm script 都要先自愈依賴（node_modules 不在快照裡，重啟就沒 tsc/rollup）', () => {
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  const needs = Object.entries(pkg.scripts).filter(([, cmd]) => /(^|\s|&& )(tsc|rollup|npx )/.test(cmd));
+  assert.ok(needs.length >= 3, `比對範圍太小（只找到 ${needs.length} 條）`);
+  for (const [name, cmd] of needs) {
+    assert.ok(/scripts\/deps\.mjs/.test(cmd), `${name} 沒先跑 deps.mjs：${cmd}`);
+  }
 });

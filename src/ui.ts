@@ -69,12 +69,19 @@
           <span class="ex-kind">${esc(vm.kindLabels[e.kind] || e.kind || '')}</span>
           <span class="ex-xp">+${Number(e.xp) || 0}</span></label>`;
       }).join('');
-      const gate = (pd.gate || []).map((g: string) => `<li>☐ ${esc(g)}</li>`).join('');
+      // 注意：這裡一定要「陣列留著、最後一次 join」。上一版先把 gate join 成字串、又對它 .map()，
+      // 结果所有有 gate 的 phase 一渲染就 TypeError（啟動失敗）。改這裡前先想清楚型別。
+      const gateList: string[] = Array.isArray(pd.gate) ? pd.gate : [];
+      const gateHtml = gateList.length
+        ? `<div class="gate"><h4>進階標準（看能力，不看日曆）</h4><ul>`
+          + gateList.map((g) => `<li>☐ ${esc(g)}</li>`).join('')
+          + `</ul>${pd.gate_note ? `<p class="hint">${esc(pd.gate_note)}</p>` : ''}</div>`
+        : '';
       const goals = vm.workoutData?.goals;
-      const footer = `${gate ? `<div class="gate"><h4>進階標準（看能力，不看日曆）</h4>
-          <ul>${gate.map((g: string) => `<li>☐ ${esc(g)}</li>`).join('')}</ul>
-          ${pd.gate_note ? `<p class="hint">${esc(pd.gate_note)}</p>` : ''}</div>` : ''}
-        ${goals ? `<p class="hint">🎯 必達：${esc((goals.must || []).join('／'))}<br>挑戰：${esc((goals.stretch || []).join('／'))}｜延伸：${esc((goals.bonus || []).join('／'))}</p>` : ''}`;
+      const goalsHtml = goals
+        ? `<p class="hint">🎯 必達：${esc((goals.must || []).join('／'))}<br>挑戰：${esc((goals.stretch || []).join('／'))}｜延伸：${esc((goals.bonus || []).join('／'))}</p>`
+        : '';
+      const footer = gateHtml + goalsHtml;
       card.innerHTML = `<div class="workout-head"><h3>${esc(vm.plan.dayKey?.toUpperCase() || '')} 訓練日${meta.label ? ` · ${esc(meta.label)}` : ''}</h3>
         <span class="chip">${exs.length} 項 · ${exs.reduce((s, e) => s + (Number(e.xp) || 0), 0)} XP</span>
         ${meta.place ? `<span class="chip">📍 ${esc(meta.place)}</span>` : ''}
