@@ -144,3 +144,13 @@ test('scope 未核准時要認出來並給出編輯器核准路徑（而不是�
   assert.match(src, /bootstrap 帶 force，重複執行是安全的/);
   assert.ok(!/JSON\.stringify\(\(r\.json \|\| r\.text \|\| ''\)\.toString\(\)/.test(src), '别再產生 [object Object] 這種錯誤訊息');
 });
+
+test('.githooks 在 git index 裡必須是可執行檔（否則 git 靜默忽略，閘門等於不存在）', () => {
+  const out = execFileSync('git', ['ls-files', '-s', '.githooks'], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n');
+  assert.equal(out.filter(Boolean).length, 2, 'pre-commit / post-checkout 都要入庫：' + out.join(' '));
+  for (const line of out.filter(Boolean)) {
+    const [mode,, , path] = line.split(/\s+/);
+    assert.equal(mode, '100755', `${path} 的模式是 ${mode}，git 會因為少了可執行位而跳過它`);
+  }
+  assert.match(readFileSync(join(ROOT, 'package.json'), 'utf8'), /chmod \+x \.githooks/);
+});

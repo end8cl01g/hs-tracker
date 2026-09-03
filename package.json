@@ -13,7 +13,7 @@
     "serve": "node scripts/serve.mjs",
     "ship": "bash scripts/ship.sh",
     "preview": "node scripts/preview.mjs",
-    "hooks": "git config core.hooksPath .githooks && echo \"hooks: ok (.githooks)\""
+    "hooks": "chmod +x .githooks/* && git config core.hooksPath .githooks && echo \"hooks: ok (.githooks, 已設可執行位)\""
   },
   "devDependencies": {
     "sql.js": "1.14.2"
