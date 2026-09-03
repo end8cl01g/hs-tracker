@@ -71,6 +71,12 @@ body = body.replace(/<path class="edge([^"]*)" d="([^"]+)"\/>/g, (all, cls, d) =
   return `<path d="${d}" fill="none" stroke="${on ? '#e94560' : '#3a3a66'}" stroke-width="${on ? 2.4 : 1.4}"${on ? ' opacity=".9"' : ''}/>`;
 });
 body = body.replace(/<ellipse class="tier-ring"[^>]*\/>/g, (all) => all.replace('<ellipse', '<ellipse fill="none" stroke="#22224' + '4"'));
+body = body.replace('<g class="hub">', '<g>')
+  .replace('<circle class="hub-dot"', '<circle fill="#171735" stroke="#e94560" stroke-width="1.5"')
+  .replace('<text x="500" y="344" class="hub-emoji">🤸</text>', '<text x="500" y="352" fill="#cfcfe8" font-size="20" text-anchor="middle">★</text>')
+  .replace('<text x="500" y="376" class="hub-text">', '<text x="500" y="376" fill="#6a6aa0" font-size="11" letter-spacing="2" text-anchor="middle">');
+// 注意：cairosvg 沒裝 CJK 字型 → 中文標籤會渲染成 □，那是預覽工具的缺字体，不是 App 的 bug。
+// 要看真的中文字：直接用瀏覽器開 dist-preview/tree.svg（或跑 npm run preview）。
 const counts = { starsIn: (raw.match(/class="sky-node /g) || []).length, starsOut: stars, edgesIn, edgesOut: edges };
 if (counts.starsIn !== counts.starsOut || counts.edgesIn !== counts.edgesOut) {
   process.stderr.write('⚠️ 預覽轉換漏件：' + JSON.stringify(counts) + '（漏了就是渲染誤判，先修這裡）\n');

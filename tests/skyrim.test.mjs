@@ -194,3 +194,20 @@ test('Esc 與 onboarding 的相欠：未完成前 Esc 不能關掉 onboarding', 
   assert.match(app, /onboarding-modal/, 'keydown 處理要認得 onboarding');
   assert.match(app, /hideOnboarding\(\)/, '開始訓練按鈕走 UI.hideOnboarding（成對處理 hidden／close）');
 });
+
+test('放大後的節點名不能疊成一片（直線支線是重災區：8 顆沿同一條線、間距 74）', () => {
+  const { UI, els } = boot();
+  UI.treeView = { x: 0, y: 0, k: 2 };
+  UI.renderTree(vmFor());
+  const labs = [...els('tree-world').innerHTML.matchAll(/class="node-label" x="(-?[\d.]+)" y="(-?[\d.]+)">([^<]*)</g)]
+    .map((m) => ({ x: Number(m[1]), y: Number(m[2]), t: m[3] }));
+  assert.ok(labs.length >= 30, '放大後每顆星都該有名字（實得 ' + labs.length + '）');
+  const H = 15;                                     // 13px 字級的行高，兩行差 11 就是為了低於這個值
+  let clash = 0;
+  for (let i = 0; i < labs.length; i++) for (let j = i + 1; j < labs.length; j++) {
+    const a = labs[i], b = labs[j];
+    if (Math.abs(a.y - b.y) < H && Math.abs(a.x - b.x) < 62) clash++;   // 62 ≈ 8 個字的寬
+  }
+  assert.equal(clash, 0, `有 ${clash} 對標籤會重疊`);
+  for (const l of labs) assert.ok(l.t.length <= 10, `標籤太長必然疊字：${l.t}`);
+});

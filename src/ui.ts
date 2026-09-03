@@ -204,13 +204,21 @@
       })).join('');
 
       const zoomed = Number(this.treeView.k) > 1.35;      // 放大才浮名字：像 Skyrim 那樣湊近看，而不是把圖壓扁
+      // 標籤擺位是實測出來的：直線支線（press：8 顆沿同一條線、間距 74）若一律放 y-27，
+      // 名字會全部疊成一片亂碼（放大預覽時看到）。所以「上半放上面、下半放下面」再按深度交錯一格。
+      const labelAt = (p: any, name: string) => {
+        const up = p.y <= 350;
+        const dy = (up ? -28 : 38) + ((p.depth || 0) % 2) * 11;
+        const short = name.length > 9 ? `${name.slice(0, 8)}…` : name;
+        return `<text class="node-label" x="${p.x}" y="${(p.y + dy).toFixed(1)}">${esc(short)}</text>`;
+      };
       const dots = nodes.map((n) => {
         const p = pos[n.id]; if (!p) return '';
         const sv = stateOf(n);
         return `<g class="sky-node ${sv}" data-skill="${esc(n.id)}" tabindex="0" role="button" aria-label="${esc(n.name)}（${sv}）">`
           + `<circle class="halo" cx="${p.x}" cy="${p.y}" r="22"/><circle class="core" cx="${p.x}" cy="${p.y}" r="${sv === 'unlocked' ? 9 : 7}"/>`
           + `<circle class="hit" cx="${p.x}" cy="${p.y}" r="26"/>`
-          + (zoomed ? `<text class="node-label" x="${p.x}" y="${(p.y - 27).toFixed(1)}">${esc(n.name)}</text>` : '') + `</g>`;
+          + (zoomed ? labelAt(p, n.name || n.id) : '') + `</g>`;
       }).join('');
       const maxDepth = Math.max(0, ...nodes.map((n) => (pos[n.id] && pos[n.id].depth) || 0));
       const rings = Array.from({ length: maxDepth + 1 }, (_, i) => {
