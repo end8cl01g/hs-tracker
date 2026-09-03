@@ -37,6 +37,7 @@ const vm = {
   streak: { current: 5, longest: 9 }, level: { level: 5, title: 'x', progress: 0.5, next: { xpRequired: 900 } },
   points: { level: 5, total: 4, spent: 3, available: 1 }, kindLabels: {}, badges: [], badgeStatuses: {},
 };
+ctx.UI.treeView = { x: 0, y: 0, k: Number(process.env.TREE_ZOOM) || 1 };   // TREE_ZOOM=1.6 可看「放大才浮出節點名」那一層
 ctx.UI.vm = vm; ctx.UI.renderTree(vm);
 const STYLE = `<style>
 .skyrim-tree{background:#0a0a1a;font-family:system-ui,sans-serif}
@@ -77,5 +78,5 @@ if (counts.starsIn !== counts.starsOut || counts.edgesIn !== counts.edgesOut) {
 }
 const vb = els.get('skill-tree') && els.get('skill-tree').__vb;
 const out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb || '0 0 1000 700'}" width="1200" height="840"><rect width="100%" height="100%" fill="#0a0a1a"/><g>${body}</g></svg>`;
-writeFileSync(join(ROOT, 'dist-preview/tree.svg'), out);
+writeFileSync(join(ROOT, process.env.TREE_OUT || 'dist-preview/tree.svg'), out);
 process.stdout.write(`dist-preview/tree.svg 已產生：${S.nodes.length} 顆星、${counts.edgesOut} 條連線（外框/顏色是預覽專用內聯，App 用 CSS class）\n`);
