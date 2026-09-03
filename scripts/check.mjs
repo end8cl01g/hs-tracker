@@ -134,6 +134,15 @@ pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(b
   }
 }
 
+// 13b) appsscript.json 的 Web App 區塊：鍵名必須是小寫 webapp，且值要對
+{
+  const m = JSON.parse(read('gas/appsscript.json'));
+  T(!('webApp' in m), 'appsscript.json 用 Google 認得的鍵名（webapp，不是 webApp）', '寫成 webApp 會被 Google 擋：push 報 unknown fields: [webApp]');
+  T(m.webapp && m.webapp.access === 'ANYONE_ANONYMOUS' && m.webapp.executeAs === 'USER_DEPLOYING',
+    'webapp 區塊：ANYONE_ANONYMOUS + USER_DEPLOYING', 'webapp 區塊不對 → 前端 POST /exec 會拿到 403 Access Denied');
+  T(m.runtimeVersion === 'V8' && Array.isArray(m.oauthScopes) && m.oauthScopes.length <= 5, `GAS 最小權限（${(m.oauthScopes || []).length} scopes、V8）`, 'scopes 過多或未指定 V8');
+}
+
 // 14) 同步佇列要排乾（雲端單次 500 列、本地單次 200 列）
 {
   const sm = read('js/sync-manager.js');

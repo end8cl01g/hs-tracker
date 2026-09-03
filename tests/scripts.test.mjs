@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname, basename } from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const run = (cmd, args, env = {}) => {
@@ -57,7 +57,11 @@ test('.gitignore 把憑證與一次性 token 檔全部擋掉', () => {
   for (const need of ['.clasprc.json', '.clasp.json', 'Bootstrap.gs', '.deploy/', '*.token']) {
     assert.ok(g.includes(need), `.gitignore 缺 ${need}`);
   }
-  assert.ok(!existsSync(join(ROOT, 'gas', 'Bootstrap.gs')), 'Bootstrap.gs 不該留在 repo（部署腳本會臨時產生）');
+  // Bootstrap.gs 只在部署進行中存在（合法），但決不可被 git 追蹤
+  const tracked = execFileSync('git', ['ls-files', '--', 'gas/Bootstrap.gs', '.deploy/gas.json'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  assert.equal(tracked, '', '一次性 token / 密鑰檔被 git 追蹤了：' + tracked);
+  const ig = execFileSync('git', ['check-ignore', '-q', 'gas/Bootstrap.gs'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(ig.trim(), '', 'git check-ignore 應認得 gas/Bootstrap.gs');
 });
 
 test('gas/.claspignore 不會把四個 .gs 擋掉（擋了就是 push 出空專案）', () => {
@@ -87,4 +91,39 @@ test('parseDeploymentId 認得 clasp 三種輸出格式（解析錯就是部署�
   assert.equal(parseDeploymentId('{"deploymentId":"' + ID + '"}'), ID, '單行 JSON');
   assert.equal(parseDeploymentId('nothing useful here'), null, '解析不到時必須回 null（腳本才會明確報錯）');
   assert.equal(parseDeploymentId(''), null);
+});
+
+test('clasp push 必須 --force 並驗證輸出（非 TTY 下 clasp 會「Skipping push.」一個檔都不推）', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  assert.match(src, /clasp\(\['push', '--force'\]\)/);
+  assert.match(src, /Skipping push/, '要偵測「Skipping push.」並當失敗');
+  assert.ok((src.match(/push\(\)/g) || []).length >= 2, '两次 push（含 token / 刪 token）都要走同一個守門');
+});
+
+test('匿名被 403 時要停在人工那一步、寫 pending 狀態、給 resume 指令', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  assert.match(src, /probeAnon\(execUrl\)/);
+  assert.match(src, /pending: 'web-app-access'/);
+  assert.match(src, /process\.exitCode = 3/);
+  assert.match(src, /--resume/);
+  assert.match(src, /Who has access/);
+  assert.match(src, /MANIFEST|沒有 access 欄位/, '要解釋為什麼 clasp/REST 設不了訪問權限');
+});
+
+test('resume 复用一次性 token 檔，不重生新 token', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  const i = src.indexOf('if (RESUME)');
+  const block = src.slice(i, src.indexOf("log('→ 授權確認');", i));
+  assert.match(block, /readFileSync\(join\(GAS, 'Bootstrap\.gs'\)/);
+  assert.match(block, /SETUP_TOKEN = /);
+  assert.ok(!/randomBytes/.test(block), 'resume 不得另生 token（雲端那份才是有效的）');
+  assert.match(block, /rmSync\(join\(GAS, 'Bootstrap\.gs'\)/, '設完密鑰要刪掉通道');
+});
+
+test('gas/.claspignore 擋掉 clasp pull 產生同名的 .js（否則下次 push 就是重複定義）', () => {
+  const ig = readFileSync(join(ROOT, 'gas', '.claspignore'), 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
+  assert.ok(ig.includes('*.js'), 'gas/.claspignore 缺 *.js');
+  for (const f of readdirSync(join(ROOT, 'gas'))) {
+    if (f.endsWith('.js')) assert.fail(`gas/ 裡還留者 pull 回來的殘渣 ${f}（該刪掉）`);
+  }
 });

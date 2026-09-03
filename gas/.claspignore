@@ -3,3 +3,5 @@ README.md
 .deploy/**
 tests/**
 scripts/**
+# clasp pull 會把 .gs 拉成同名 .js；留著下次 push 就會變成重複定義
+*.js
