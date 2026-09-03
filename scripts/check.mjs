@@ -140,6 +140,13 @@ pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(b
   T(!('webApp' in m), 'appsscript.json 用 Google 認得的鍵名（webapp，不是 webApp）', '寫成 webApp 會被 Google 擋：push 報 unknown fields: [webApp]');
   T(m.webapp && m.webapp.access === 'ANYONE_ANONYMOUS' && m.webapp.executeAs === 'USER_DEPLOYING',
     'webapp 區塊：ANYONE_ANONYMOUS + USER_DEPLOYING', 'webapp 區塊不對 → 前端 POST /exec 會拿到 403 Access Denied');
+  const sheetsSrc = read('gas/Sheets.gs');
+  if (/SpreadsheetApp\.create\(/.test(sheetsSrc)) {
+    T((m.oauthScopes || []).includes('https://www.googleapis.com/auth/spreadsheets'),
+      'GAS scope 對得上代碼（會 SpreadsheetApp.create ⇒ 需 spreadsheets）',
+      '代碼要建表但 scope 只有 currentonly → 部署後 setup/bootstrap 會回「Specified permissions are not sufficient」');
+  }
+  T(!(m.oauthScopes || []).some((x) => /auth\/drive$/.test(x)), 'GAS 不要求整個 Drive 的寫入權', '出現 drive 全域寫入 scope，過多');
   T(m.runtimeVersion === 'V8' && Array.isArray(m.oauthScopes) && m.oauthScopes.length <= 5, `GAS 最小權限（${(m.oauthScopes || []).length} scopes、V8）`, 'scopes 過多或未指定 V8');
 }
 

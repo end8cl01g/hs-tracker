@@ -131,3 +131,49 @@ test('body 不是 JSON 時回 bad-request（不讓 500 洩出去）', () => {
   assert.equal(r.ok, false);
   assert.equal(r.error, 'bad-request');
 });
+
+// ---- 本輪新增：密鑰由部署腳本帶來（回應被 Google 吃掉也能復原）----
+test('bootstrap 可帶自製密鑰：寫入後用同一密鑰立刻可用', () => {
+  const TOKEN = 'tk-A';
+  const { post, store } = makeEnv({ setupToken: TOKEN });
+  const mine = 'a'.repeat(64);
+  const r = post({ action: 'bootstrap', setup_token: TOKEN, secret: mine });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.secret, mine, '要原樣回傳我們送的密鑰');
+  assert.equal(store.get('SHARED_SECRET'), mine);
+  assert.equal(post({ action: 'push', device_id: 'd', secret: mine, tables: {} }).ok, true);
+});
+
+test('太短的密鑰要拒，而且不得動到既有 Property', () => {
+  const TOKEN = 'tk-B';
+  const { post, store } = makeEnv({ setupToken: TOKEN });
+  const r = post({ action: 'bootstrap', setup_token: TOKEN, secret: 'letmein' });
+  assert.equal(r.error, 'weak-secret');
+  assert.equal(store.has('SHARED_SECRET'), false, '拒絕時不能已經寫進去');
+});
+
+test('已設定密鑰後：只有「對的 SETUP_TOKEN ＋ force」能輪替；錯 token 帶 force 也照樣拒', () => {
+  const TOKEN = 'tk-C';
+  const { post, store } = makeEnv({ setupToken: TOKEN });
+  const first = post({ action: 'bootstrap', setup_token: TOKEN, secret: 'b'.repeat(64) }).secret;
+  assert.equal(post({ action: 'bootstrap', setup_token: TOKEN, secret: 'c'.repeat(64) }).error, 'already-initialized');
+  const rot = post({ action: 'bootstrap', setup_token: TOKEN, secret: 'c'.repeat(64), force: true });
+  assert.equal(rot.ok, true, JSON.stringify(rot));
+  assert.equal(rot.rotated, true);
+  assert.equal(store.get('SHARED_SECRET'), 'c'.repeat(64));
+  assert.equal(post({ action: 'push', device_id: 'd', secret: first }).error, 'unauthorized', '舊密鑰應該立刻失效');
+  const evil = post({ action: 'bootstrap', setup_token: 'wrong', secret: 'd'.repeat(64), force: true });
+  assert.equal(evil.error, 'bad-setup-token', 'force 不能繞過 token 檢查');
+  assert.equal(store.get('SHARED_SECRET'), 'c'.repeat(64));
+});
+
+test('ensureSheets_ 失敗時仍回 ok 但 sheets_ready:false（密鑰已生效，建表可補）', () => {
+  const TOKEN = 'tk-D';
+  const { post, ctx } = makeEnv({ setupToken: TOKEN });
+  ctx.__boom = true;
+  // 把 stub 換成會丟的版本再重跑一次 bootstrap
+  runInContext('function ensureSheets_() { throw new Error("quota"); }', ctx);
+  const r = post({ action: 'bootstrap', setup_token: TOKEN, secret: 'e'.repeat(64) });
+  assert.equal(r.ok, true, '建表失敗不該讓密鑰設定一起失敗（否則只能回編輯器手動處理）');
+  assert.equal(r.sheets_ready, false);
+});

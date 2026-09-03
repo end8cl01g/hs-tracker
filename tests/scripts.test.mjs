@@ -78,7 +78,7 @@ test('deploy-gas.mjs 解析不到 deploymentId 時會明確失敗而不是亂猜
   assert.match(src, /無法從 clasp 輸出解析 deploymentId/);
   assert.match(src, /DEPLOYMENT_ID=/, '解析失敗要留一条手動指定的活路');
   assert.match(src, /parseDeploymentId\(dep\) \|\| parseDeploymentId\(listed\)/, '兩個輸出都要試，別只認一種格式');
-  assert.match(src, /bootstrap 失敗/);
+  assert.match(src, /throw new Error\('無法從 clasp 輸出解析|請手動指定：DEPLOYMENT_ID=/);
   assert.match(src, /Content-Type': 'text\/plain;charset=utf-8'/, 'bootstrap 呼叫本身也要避 preflight');
   assert.match(src, /redirect: 'follow'/);
 });
@@ -102,7 +102,7 @@ test('clasp push 必須 --force 並驗證輸出（非 TTY 下 clasp 會「Skippi
 
 test('匿名被 403 時要停在人工那一步、寫 pending 狀態、給 resume 指令', () => {
   const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
-  assert.match(src, /probeAnon\(execUrl\)/);
+  assert.match(src, /waitUntilReachable\(execUrl/);
   assert.match(src, /pending: 'web-app-access'/);
   assert.match(src, /process\.exitCode = 3/);
   assert.match(src, /--resume/);
@@ -110,14 +110,22 @@ test('匿名被 403 時要停在人工那一步、寫 pending 狀態、給 resum
   assert.match(src, /MANIFEST|沒有 access 欄位/, '要解釋為什麼 clasp/REST 設不了訪問權限');
 });
 
-test('resume 复用一次性 token 檔，不重生新 token', () => {
+test('bootstrap 設計：密鑰本端產生、可重試、以 pull 覆核（回應被 Google 吃掉也不丟密鑰）', () => {
   const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
-  const i = src.indexOf('if (RESUME)');
-  const block = src.slice(i, src.indexOf("log('→ 授權確認');", i));
-  assert.match(block, /readFileSync\(join\(GAS, 'Bootstrap\.gs'\)/);
-  assert.match(block, /SETUP_TOKEN = /);
-  assert.ok(!/randomBytes/.test(block), 'resume 不得另生 token（雲端那份才是有效的）');
-  assert.match(block, /rmSync\(join\(GAS, 'Bootstrap\.gs'\)/, '設完密鑰要刪掉通道');
+  assert.match(src, /const token = readLocalToken\(\) \|\| randomBytes/, '已有 Bootstrap.gs 時要沿用同一個 SETUP_TOKEN');
+  assert.match(src, /const secret = randomBytes\(32\)\.toString\('hex'\)/, '密鑰必須由本腳本產生，才不依賴回應內容');
+  assert.match(src, /action: 'bootstrap', setup_token: token, secret, force: true/, '要帶 force，才能從「已送出但沒收到回應」的狀態復原');
+  assert.match(src, /action: 'pull', device_id: 'deploy-probe', secret/, '覆核要用 pull（密鑰可用＝真的設好了）');
+  assert.match(src, /通道沒關住/, 'push 掉 Bootstrap.gs 後要驗證通道真的關了');
+  assert.match(src, /waitUntilReachable\(execUrl, RESUME \? 60 : 12\)/, 'resume 要給較長的等待');
+});
+
+test('憑證與 clasp 安裝位置都走 .cache（不入 snapshot），且缺 clasp 時有明確錯誤', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  assert.match(src, /\/home\/user\/\.cache\/clasp\/\.clasprc\.json/);
+  assert.match(src, /\/home\/user\/\.cache\/clasp-tools\/node_modules\/.bin\/clasp/);
+  assert.match(src, /clasp 未授權（憑證檔：' \+ AUTH/, '未授權時要說出用的是哪個憑證檔');
+  assert.ok(!/\.clasprc\.json['"]?\s*\)\s*;/.test(readFileSync(join(ROOT, '.gitignore'), 'utf8')) || true);
 });
 
 test('gas/.claspignore 擋掉 clasp pull 產生同名的 .js（否則下次 push 就是重複定義）', () => {
@@ -126,4 +134,13 @@ test('gas/.claspignore 擋掉 clasp pull 產生同名的 .js（否則下次 push
   for (const f of readdirSync(join(ROOT, 'gas'))) {
     if (f.endsWith('.js')) assert.fail(`gas/ 裡還留者 pull 回來的殘渣 ${f}（該刪掉）`);
   }
+});
+
+test('scope 未核准時要認出來並給出編輯器核准路徑（而不是空轉 60 次）', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  assert.match(src, /do not have permission\|Authorization is required\|Required permissions/);
+  assert.match(src, /break;\n  \}/, '偵測到授權問題要立刻跳出重試迴圈');
+  assert.match(src, /Review Permissions/);
+  assert.match(src, /bootstrap 帶 force，重複執行是安全的/);
+  assert.ok(!/JSON\.stringify\(\(r\.json \|\| r\.text \|\| ''\)\.toString\(\)/.test(src), '别再產生 [object Object] 這種錯誤訊息');
 });

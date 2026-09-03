@@ -27,9 +27,8 @@ function handle_(e) {
   // 「首次設定」通道：只有還沒密鑰時開放，比對的是 gas/Bootstrap.gs 裡的一次性 SETUP_TOKEN
   // （scripts/deploy-gas.mjs 會寫入、用畢即刪並重新 push，把這條路關掉）
   if (action === 'bootstrap') {
-    const out = secret
-      ? { ok: false, error: 'already-initialized', hint: '密鑰已設定；要重設請先刪 Project Properties 的 SHARED_SECRET' }
-      : bootstrapWithToken_(req.setup_token);
+    // 只有 SETUP_TOKEN（存在於 gas/Bootstrap.gs，部署完即刪除）能過；通過後才談 force/覆蓋
+    const out = bootstrapWithToken_(req.setup_token, { secret: req.secret, force: !!req.force, hadSecret: !!secret });
     out.server_ts = nowISO_();
     out.ms = Date.now() - t0;
     return jsonOut_(out);
@@ -93,18 +92,29 @@ function jsonOut_(obj) {
 /**
  * 一次性初始化（由 scripts/deploy-gas.mjs 自動呼叫；該腳本用畢即刪 gas/Bootstrap.gs 並重新 push）
  * 條件：本專案內有一份只存在於**你的 private script**（且已 gitignore、不會進 public repo）的
- * SETUP_TOKEN，比對成功才產生並寫入 SHARED_SECRET；第二次呼叫就必須帶密鑰了。
+ * SETUP_TOKEN，比對成功才寫入 SHARED_SECRET。密鑰可由部署腳本產生後送來（可重試／可覆核），
+ * 已設定過時要帶 force:true 才准輪替；Bootstrap.gs 一被刪掉，這條路就自動關閉。
  */
-function bootstrapWithToken_(token) {
+function bootstrapWithToken_(token, opts) {
+  const o = opts || {};
   const props = PropertiesService.getScriptProperties();
-  if (props.getProperty('SHARED_SECRET')) {
-    return { ok: false, error: 'already-initialized', hint: '密鑰已設定；要重設請先手動刪除 SHARED_SECRET' };
-  }
   const expected = (typeof SETUP_TOKEN === 'undefined') ? '' : String(SETUP_TOKEN);
   if (!expected) return { ok: false, error: 'no-setup-token', hint: '跑 node scripts/deploy-gas.mjs --yes（它會暫存 gas/Bootstrap.gs 再 push）' };
   if (!safeEqual_(token, expected)) return { ok: false, error: 'bad-setup-token' };
-  const secret = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  if (o.hadSecret && !o.force) {
+    return { ok: false, error: 'already-initialized', hint: '密鑰已設定；輪替請帶 force:true' };
+  }
+  // 密鑰允許由部署腳本產生後送來：Google 偶爾把首個回應換成 HTML 頁，
+  // 「客戶端自帶密鑰」讓 bootstrap 可重試、可復核（用 pull 覆核），不必回編輯器重設。
+  let secret;
+  if (o.secret) {
+    secret = String(o.secret);
+    if (!/^[0-9a-f]{32,128}$/i.test(secret)) return { ok: false, error: 'weak-secret', hint: 'secret 需為 32–128 個十六字元' };
+  } else {
+    secret = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  }
   props.setProperty('SHARED_SECRET', secret);
-  ensureSheets_();
-  return { ok: true, secret: secret, sheets_ready: true };
+  let sheetsReady = true;
+  try { ensureSheets_(); } catch (err) { sheetsReady = false; log_('bootstrap: ensureSheets_ 失敗 ' + err); }
+  return { ok: true, secret: secret, sheets_ready: sheetsReady, rotated: !!o.hadSecret };
 }

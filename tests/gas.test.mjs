@@ -98,8 +98,11 @@ test('appsscript.json：V8、最小權限、Web App 設定齊備', () => {
   assert.equal(m.exceptionLogging, 'STACKDRIVER');
   assert.equal(m.webapp.access, 'ANYONE_ANONYMOUS');
   assert.equal(m.webapp.executeAs, 'USER_DEPLOYING');
-  assert.ok(m.oauthScopes.includes('https://www.googleapis.com/auth/spreadsheets.currentonly'));
+  // Sheets.gs 會 SpreadsheetApp.create（沒有 SHEET_ID 時建表）→ currentonly 不夠，實測回
+  // "Specified permissions are not sufficient to call SpreadsheetApp.create"
+  const createsSheet = /SpreadsheetApp\.create\(/.test(readFileSync(join(GAS, 'Sheets.gs'), 'utf8'));
+  if (createsSheet) assert.ok(m.oauthScopes.includes('https://www.googleapis.com/auth/spreadsheets'), '要 create 就得給 spreadsheets scope（currentonly 只能開既有的）');
   assert.ok(m.oauthScopes.includes('https://www.googleapis.com/auth/script.external_request'));
-  assert.ok(!m.oauthScopes.some((s) => /spreadsheets$/.test(s)), '用了 currentonly 就不該再要全域 spreadsheets scope');
+  assert.ok(!m.oauthScopes.includes('https://www.googleapis.com/auth/spreadsheets.currentonly') || !createsSheet, '要建表時 currentonly 不夠用');
   assert.ok(!m.oauthScopes.some((s) => /drive$/.test(s)), '不要求整個 Drive 的寫入權');
 });
