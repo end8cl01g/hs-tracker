@@ -134,3 +134,16 @@ test('部署腳本「叫人在編輯器按的函式」必須真的存在於產�
     assert.ok(new RegExp('^function ' + fn + '\\s*\\(', 'm').test(bundle), `產物裡找不到 function ${fn}()（要先 npm run gas:build）`);
   }
 });
+
+test('雲端時間處理：比大小用 epoch、入表用 UTC Z、墓碑寫 op=delete', () => {
+  const sheets = readFileSync(join(ROOT, 'gas', 'src', 'sheets.ts'), 'utf8');
+  const utils = readFileSync(join(ROOT, 'gas', 'src', 'utils.ts'), 'utf8');
+  assert.match(utils, /function toZ_\(/, '要有共用的 toZ_ 歸一器');
+  assert.match(sheets, /const sinceMs = since \? Date\.parse\(String\(since\)\) : 0;/, 'since 游標要換成 epoch（Z 與 +08:00 混存時字串比對會跳列）');
+  assert.match(sheets, /if \(sinceMs && uOk && uMs <= sinceMs\) return;/, '較舊的列要被游標擋掉');
+  assert.match(sheets, /if \(sinceMs && !uOk/, '解析不了的時間要退回字串比對，不准默默放過');
+  assert.match(sheets, /const op = \(r\.deleted \|\| r\._deleted\) \? 'delete' : 'upsert';/, 'pushRows_ 要把軟刪寫成 op=delete');
+  assert.match(sheets, /rows\.push\(\[nowISO_\(\), device, tbl, String\(r\[pk\]\), toZ_\(/, '進表的 updated_at 要 over toZ_');
+  assert.match(sheets, /payload\.op = String\(v\[5\]/, 'pull 要附帶 op，沒 deleted 欄的表才認得墓碑');
+  assert.ok(!/if \(since && updatedAt <= String\(since\)\) return;/.test(sheets), '不准再留「updated_at <= since」的字串比對');
+});

@@ -14,9 +14,10 @@
 //   node scripts/deploy-gas.mjs                      # 預覽（不碰帳號）
 //   node scripts/deploy-gas.mjs --yes                # 完整部署
 //   node scripts/deploy-gas.mjs --yes --resume       # 你在編輯器開了 Anyone 權限後接續
+//   node scripts/deploy-gas.mjs --yes --keep-secret  # 只改雲端代碼：沿用現密密鑰，各裝置不必重貼
 //   node scripts/deploy-gas.mjs --yes --destroy      # 刪掉建立的 Apps Script 專案
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync, rmSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, rmSync, mkdirSync, chmodSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 
@@ -206,11 +207,18 @@ async function deleteCloudFiles(scriptId, names) {
   return { removed: (cur.files || []).map((f) => f.name).filter((n) => drop.has(n.replace(/\.gs$/, ''))), total: keep.length };
 }
 
+function readState() {
+  const p = join(OUT, 'gas.json');
+  return existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : {};
+}
+
 function saveState(extra) {
   mkdirSync(OUT, { recursive: true });
   const p = join(OUT, 'gas.json');
   const prev = existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : {};
   writeFileSync(p, JSON.stringify({ ...prev, ...extra, at: new Date().toISOString() }, null, 2) + '\n');
+  // writeFileSync 的 mode 只對「新建」生效，已存在的檔權限不會被改（實測踩過：gas.json 一直是 644）
+  chmodSync(p, 0o600);
   return p;
 }
 
@@ -276,7 +284,12 @@ async function main() {
   const token = readLocalToken() || randomBytes(18).toString('base64url');
   mkdirSync(GAS_DIST, { recursive: true });
   writeFileSync(BOOTSTRAP, `// 一次性安裝用；部署完成即被刪除，且不進 git、不進 public repo\n// 源碼是 gas/src/*.ts，雲端只吃 gas/dist/Code.gs，所以這個檔放 dist（clasp rootDir）\nconst SETUP_TOKEN = ${JSON.stringify(token)};\n`);
-  const secret = randomBytes(32).toString('hex');
+  // 預設輪替密鑰（新部署／密鑰外洩後都該換）；只改雲端代碼時用 --keep-secret 沿用舊值，
+  // 否則每台裝置都得重貼一次 64 碼——那是讓人偷懶不輪替的最大藉口。
+  const KEEP = process.argv.includes('--keep-secret');
+  const prevSecret = KEEP ? (readState().secret || '') : '';
+  if (KEEP && !prevSecret) throw new Error('--keep-secret 但 .deploy/gas.json 沒有 secret，先跑一次完整部署');
+  const secret = prevSecret || randomBytes(32).toString('hex');
 
   let cfg = readClaspJson();
   if (!cfg) {
@@ -352,17 +365,23 @@ async function main() {
   // （實測：@12 之後探針還回 already-initialized）。所以建版本→探針要重試到真的看到 no-setup-token。
   let closed = null;
   let channelClosed = false;
-  for (let i = 0; i < 5 && !channelClosed; i++) {
+  for (let i = 0; i < 10 && !channelClosed; i++) {
     if (i) {
       log('  版本還沒跟上（第 ' + (i + 1) + ' 次）→ 重發一個版本');
       clasp(['create-deployment', '-i', deploymentId, '-d', 'close-bootstrap-channel-retry' + i]).trim();
-      await sleep(6000);
+      await sleep(9000);
     }
-    closed = await postJson(execUrl, { action: 'bootstrap', setup_token: token, secret });
+    // 探針刻意「帶錯 token ＋ force:true」：這樣 already-initialized 就不會出現，
+    // 判讀只剩兩種——no-setup-token＝通道已關；bad-setup-token＝通道還開著。
+    // （以前帶真 token 不带 force，通道明明關了卻回 already-initialized，整支腳本誤報「通道沒關住」）
+    closed = await postJson(execUrl, { action: 'bootstrap', setup_token: 'probe-' + Date.now(), secret, force: true });
     log('  通道狀態：' + JSON.stringify(closed.json ?? '（回應非 JSON）'));
     channelClosed = closed.json?.error === 'no-setup-token';
   }
-  if (!channelClosed) throw new Error('刪掉 Bootstrap.gs 後 bootstrap 仍能設定——通道沒關住（雲端可能留了舊版本，請手動刪 Bootstrap 檔後重跑）');
+  if (!channelClosed) {
+    throw new Error('探針仍看到 ' + (closed.json?.error || '非 JSON 回應') + '：若仍是 already-initialized/bad-setup-token，代表雲端那個版本還含 Bootstrap.gs——'
+      + '稍後重跑「node scripts/deploy-gas.mjs --yes --keep-secret --resume」即可（版本固化是非同步的，密鑰不會變）');
+  }
 
   if (bootError) {
     saveState({ pending: bootError.message.includes('核准') ? 'scopes-consent' : 'bootstrap', sheets_ready: false, channel_closed: true });

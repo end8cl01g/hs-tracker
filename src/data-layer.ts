@@ -14,15 +14,35 @@
   };
 
   const bool = (v) => (v ? 1 : 0);
-  const stamp = () => (D ? D.nowStamp() : new Date().toISOString());
+  // 一律 UTC（...Z）：GAS 端 nowISO_() 也是 toISOString()，兩邊不同枚舉就不能比大小。
+  // 以前這裡用 DateUtils.nowStamp()（本機時區 +08:00），實測與雲端的 Z 混存後，
+  // 字串比較會選錯勝者（07:00+08:00 比 00:30Z「小」，其實是較晚），LWW 與 since 游標一起錯。
+  const stamp = () => new Date().toISOString();
 
-  /** 較新的 updated_at 勝；缺 updated_at 視為最舊 */
+  /** 解析成 epoch ms；解析不了＝0（最舊）。缺時間戳的列一律輸給有時間戳的。 */
+  function tsMs(v: any): number {
+    const t = Date.parse(String((v && (v as any).updated_at) || ''));
+    return Number.isNaN(t) ? 0 : t;
+  }
+  /** 把任何 ISO 變形（+08:00、缺毫秒）歸一成 UTC Z；解析不了就原樣留著，別把資料弄丟 */
+  function toZ(v: any): string {
+    const raw = String(v == null ? '' : v);
+    if (!raw) return '';
+    const t = Date.parse(raw);
+    return Number.isNaN(t) ? raw : new Date(t).toISOString();
+  }
+
+  /** 較新的 updated_at 勝（數值比較，容得下舊資料殘留的 +08:00 格式） */
   function newer(a, b) {
-    const x = String((a && a.updated_at) || ''), y = String((b && b.updated_at) || '');
+    const x = tsMs(a), y = tsMs(b);
     if (!x && !y) return 0;
     if (!x) return -1;
     if (!y) return 1;
     return x < y ? -1 : x > y ? 1 : 0;
+  }
+  /** 刪除語意：workout_logs 用 deleted 旗標；雲端也把 op=delete 當墓碑 */
+  function isTombstone(r: any): boolean {
+    return !!(r && (r.deleted || r._deleted || r.op === 'delete'));
   }
 
   function insertRow(table, obj) {
@@ -185,14 +205,21 @@
       if (!spec) throw new Error(`unknown table ${table}`);
       const pk = spec.pk;
       const local = DB.getRow(`SELECT * FROM ${table} WHERE ${pk} = ?`, [remote[pk]]);
+      // 墓碑：本機沒有就直接無視（不然「雲端刪掉的列」會被當成新增列复活——實測踩過：
+      // CLI 留的 verify-* 測試列軟刪後被 App pull 回去，變成使用者今天的訓練紀錄）
       if (!local) {
-        insertRow(table, { ...remote, updated_at: remote.updated_at || stamp(), synced: 1 });
+        if (isTombstone(remote)) return Promise.resolve({ action: 'ignored-tombstone', conflict: false });
+        insertRow(table, { ...remote, updated_at: toZ(remote.updated_at) || stamp(), synced: 1 });
         return Promise.resolve({ action: 'applied', conflict: false });
       }
       const c = newer(remote, local);
       const diff = spec.cols.some((k) => String(local[k] ?? '') !== String(remote[k] ?? ''));
+      if (c > 0 && isTombstone(remote)) {          // 較新的刪除 ⇒ 本機跟著刪（並清掉待同步佇列，別再推回去）
+        DB.run(`DELETE FROM ${table} WHERE ${pk} = ?`, [remote[pk]]);
+        return Promise.resolve({ action: 'deleted', conflict: diff });
+      }
       if (c > 0) {
-        insertRow(table, { ...local, ...remote, synced: 1 });
+        insertRow(table, { ...local, ...remote, updated_at: toZ(remote.updated_at) || local.updated_at, synced: 1 });
         if (diff) DataLayer._logConflict(table, local, remote, 'remote');
         return Promise.resolve({ action: 'applied', conflict: diff });
       }

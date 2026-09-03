@@ -128,7 +128,7 @@ test('匿名被 403 時要停在人工那一步、寫 pending 狀態、給 resum
 test('bootstrap 設計：密鑰本端產生、可重試、以 pull 覆核（回應被 Google 吃掉也不丟密鑰）', () => {
   const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
   assert.match(src, /const token = readLocalToken\(\) \|\| randomBytes/, '已有 Bootstrap.gs 時要沿用同一個 SETUP_TOKEN');
-  assert.match(src, /const secret = randomBytes\(32\)\.toString\('hex'\)/, '密鑰必須由本腳本產生，才不依賴回應內容');
+  assert.match(src, /const secret = prevSecret \|\| randomBytes\(32\)\.toString\('hex'\)/, '密鑰必須由本腳本產生（或沿用本腳本先前產生過的），才不依賴回應內容');
   assert.match(src, /action: 'bootstrap', setup_token: token, secret, force: true/, '要帶 force，才能從「已送出但沒收到回應」的狀態復原');
   assert.match(src, /action: 'pull', device_id: 'deploy-probe', secret/, '覆核要用 pull（密鑰可用＝真的設好了）');
   assert.match(src, /通道沒關住/, 'push 掉 Bootstrap.gs 後要驗證通道真的關了');
@@ -225,7 +225,7 @@ test('關通道不能只靠 clasp push（它不會刪除雲端舊檔）', () => 
   assert.match(src, /async function deleteCloudFiles\(/, '少了 content API 補刀');
   assert.match(src, /script\.googleapis\.com\/v1\/projects\//, '要用 Apps Script REST 覆寫檔案清單');
   const del = src.indexOf('await deleteCloudFiles(');
-  const probe = src.indexOf("action: 'bootstrap', setup_token: token, secret }");
+  const probe = src.indexOf("action: 'bootstrap', setup_token: 'probe-' + Date.now(), secret, force: true }");
   const redeploy = src.indexOf("create-deployment', '-i', deploymentId, '-d', 'close-bootstrap-channel'");
   assert.ok(del > 0 && probe > del && redeploy > 0 && redeploy < probe, '順序必須：移除檔案 → 發新版本 → 才驗通道');
   assert.match(src, /oauth2\.googleapis\.com\/token/, 'access token 要自己換（不依賴 clasp 內部）');
@@ -251,7 +251,10 @@ test('關通道要重試到看到 no-setup-token（版本固化是非同步的�
   const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
   assert.match(src, /channelClosed = closed\.json\?\.error === 'no-setup-token'/, '只認 no-setup-token；already-initialized 代表 Bootstrap 還在');
   assert.match(src, /close-bootstrap-channel-retry/, '探針失敗時要重發版本');
-  assert.match(src, /for \(let i = 0; i < 5 && !channelClosed; i\+\+\)/, '要有重試迴圈（實測 @12 才删檔仍回報舊版本）');
+  assert.match(src, /for \(let i = 0; i < 10 && !channelClosed; i\+\+\)/, '要有重試迴圈，次數要夠（實測 @18 也是第 6 次以後版本才固化）');
+  assert.match(src, /setup_token: 'probe-/, '探針要帶錯 token：帶真 token 時 already-initialized 會被誤讀成「通道沒關」');
+  assert.match(src, /secret, force: true }/, '帶 force:true 讓回應只剩 no-setup-token / bad-setup-token 兩種');
+
 });
 
 test('gas/.clasp.template.json 是入庫的政策來源（CI 上沒有 .clasp.json 也要能驗 rootDir）', () => {
@@ -283,3 +286,13 @@ test('CI 的「外部 CDN」檢查要掃 URL、掃檔要涵蓋 manifest（實測
   const chk = readFileSync(join(ROOT, 'scripts', 'check.mjs'), 'utf8');
   assert.match(chk, /stripComments/, '本地 check 剝註解後再掃（兩邊都要準）');
 });
+
+test('deploy-gas 只改雲端代碼時能沿用密鑰，且 saveState 寫完就 chmod 0600', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  assert.match(src, /--keep-secret/, '要有「不輪替密鑰」的開關，否則每次改雲端都要每台裝置重貼 64 碼');
+  assert.match(src, /if \(KEEP && !prevSecret\) throw new Error/, '沿用但要確定真有舊值，不能靜默換一把新的');
+  assert.match(src, /function readState\(\)/, '讀 .deploy/gas.json 要有專門的函式');
+  assert.match(src, /chmodSync\(p, 0o600\)/, 'writeFileSync 的 mode 不會改已存在的檔案（gas.json 曾經一直是 644）');
+  assert.match(src, /#.*--keep-secret.*裝置不必重貼/s, '用法註解要寫明這開關省了什麼');
+});
+

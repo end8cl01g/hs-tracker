@@ -83,7 +83,9 @@ function pushRows_(device, tables) {
       if (json.length > 400000) { rejected.push({ table: tbl, reason: 'row-too-large' }); return; }
       if (r[pk] == null) { rejected.push({ table: tbl, reason: 'missing-pk' }); return; }
       okIds.push(r[pk]);
-      rows.push([nowISO_(), device, tbl, String(r[pk]), String(r.updated_at || r.created_at || ''), 'upsert', json]);
+      // 墓碑要如實寫 op='delete'：人類在表裡看得懂，客戶端也能靠 op 判別（不然刪掉的列會被當成 upsert 复活）
+      const op = (r.deleted || r._deleted) ? 'delete' : 'upsert';
+      rows.push([nowISO_(), device, tbl, String(r[pk]), toZ_(r.updated_at || r.created_at || ''), op, json]);
     });
     if (okIds.length) acked[tbl] = { ids: okIds, count: okIds.length };
   });
@@ -104,14 +106,22 @@ function pullRows_(since) {
   const vals = sh.getRange(2, 1, n - 1, HEADERS.Changes.length).getValues();
   const latest = {};
   let count = 0;
+  // 時間比較一律換成 epoch：表裡同時存在 Z（GAS 寫的）與 +08:00（舊版 App 寫的），
+  // 字串比對在不同枚舉下會選錯勝者、也會讓 since 游標跳列（2026-09-03 從真機覆核時抓到）。
+  const sinceMs = since ? Date.parse(String(since)) : 0;
   vals.forEach(function (v) {
     const updatedAt = String(v[4] || '');
-    if (since && updatedAt <= String(since)) return;
+    const uMs = Date.parse(updatedAt);
+    const uOk = !Number.isNaN(uMs);
+    if (sinceMs && uOk && uMs <= sinceMs) return;
+    if (sinceMs && !uOk && updatedAt && updatedAt <= String(since)) return;   // 解析不了的退回字串比對，別放過
     let payload;
     try { payload = JSON.parse(String(v[6])); } catch (e) { return; }
     const key = String(v[2]) + '|' + String(v[3]);
-    if (latest[key] && String(latest[key].updated_at || '') >= updatedAt) return;
-    payload.updated_at = payload.updated_at || updatedAt;
+    const prevMs = latest[key] ? Date.parse(String(latest[key].updated_at || '')) : -1;
+    if (latest[key] && (Number.isNaN(prevMs) ? 0 : prevMs) >= (uOk ? uMs : 0)) return;
+    payload.updated_at = toZ_(payload.updated_at || updatedAt);
+    payload.op = String(v[5] || 'upsert');   // 沒有 deleted 欄的表（badges/xp_log/…）靠這個認墓碑
     latest[key] = payload;
     count++;
   });

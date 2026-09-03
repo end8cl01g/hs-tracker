@@ -6,6 +6,14 @@ function log_(msg) {
   try { Logger.log('[' + nowISO_() + '] ' + msg); } catch (e) { /* 沒開 Logs 權限時也不炸 */ }
 }
 
+/** 把任何 ISO 變形歸一成 UTC（...Z）；解析不了就原樣回傳——寧可難看也不能變成空字串 */
+function toZ_(v) {
+  const raw = String(v == null ? '' : v);
+  if (!raw) return '';
+  const t = Date.parse(raw);
+  return Number.isNaN(t) ? raw : new Date(t).toISOString();
+}
+
 /** 常數時間比對（密鑰比對不用 ===） */
 function safeEqual_(a, b) {
   const x = String(a || ''), y = String(b || '');
