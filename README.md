@@ -69,7 +69,15 @@ node scripts/deploy-gas.mjs              # 只預覽，不碰你帳號
 node scripts/deploy-gas.mjs --yes        # 建專案 → push → 建部署 → bootstrap 設密鑰＋建表 → 刪 token → 再 push
 ```
 
-腳本把「一定要進編輯器點一下」那步也自動化掉了：它臨時寫一份 `gas/Bootstrap.gs`（一次性
+**兩次無法 headless 的一次性核准**（本輪實測確定，不是推測）：
+1. Web App 訪問權限：Apps Script REST 的 `DeploymentConfig` 沒有 access 欄位，`appsscript.json` 的
+   `webapp.access` 也只影響編輯器建的部署 → 要在 Deploy ▸ Manage deployments 把 *Who has access* 設成 **Anyone**。
+2. Scope 核准：`oauthScopes` 之後必須本人在編輯器 Run 一次（Review Permissions ▸ Advanced ▸ Allow），
+   否則 `SpreadsheetApp.create` 回 `You do not have permission…Required permissions: …/spreadsheets`。
+   沒核准時 `deploy-gas.mjs` 會直接認出來並印出點選路徑，不會空轉重試。
+   `bootstrap` 帶 `force` 且密鑰由腳本自己產生，所以**重跑同一條命令是安全的**（不會把密鑰弄丟）。
+
+其餘都自動化了：腳本把剩下的都自動化掉：它臨時寫一份 `gas/Bootstrap.gs`（一次性
 `SETUP_TOKEN`，已 gitignore、不進 public repo）→ push → 用 `action=bootstrap` 換回 64 字元密鑰
 → **立刻刪掉 Bootstrap.gs 再 push**，設定通道就此關閉。之後 `bootstrap` 一律回 `already-initialized`。
 

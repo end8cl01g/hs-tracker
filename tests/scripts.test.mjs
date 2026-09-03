@@ -139,7 +139,7 @@ test('gas/.claspignore 擋掉 clasp pull 產生同名的 .js（否則下次 push
 test('scope 未核准時要認出來並給出編輯器核准路徑（而不是空轉 60 次）', () => {
   const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
   assert.match(src, /do not have permission\|Authorization is required\|Required permissions/);
-  assert.match(src, /break;\n  \}/, '偵測到授權問題要立刻跳出重試迴圈');
+  assert.match(src, /Required permissions[\s\S]{0,120}break;/, '偵測到授權問題要立刻跳出重試迴圈，不要空轉 30 次');
   assert.match(src, /Review Permissions/);
   assert.match(src, /bootstrap 帶 force，重複執行是安全的/);
   assert.ok(!/JSON\.stringify\(\(r\.json \|\| r\.text \|\| ''\)\.toString\(\)/.test(src), '别再產生 [object Object] 這種錯誤訊息');
