@@ -143,9 +143,10 @@ test('技能 modal：開 → 填 → 存 → 關，innerHTML 注入的按鈕也�
   ctx.UI.openSkill('s1');
   assert.equal(visible(els.get('skill-modal')), true, '開 modal 後必須可見');
   const content = els.get('skill-modal-content').innerHTML;
-  assert.match(content, /靠牆倒立/);
+  // 骨架的 id 來自 index.html 的 <template>；文字內容走 textContent（不被當 HTML 解析）→ 斷言要分開看
   assert.match(content, /id="skill-close"/);
   assert.match(content, /id="skill-video"/);
+  assert.match((els.get('sk-title') || REG.get('sk-title')).textContent, /靠牆倒立/);
   // 表單存檔：走真實 DOM 事件，不是測試另寫一套邏輯
   G('skill-video').value = 'https://youtu.be/abc';
   G('skill-notes').value = '<img src=x onerror=alert(1)>';

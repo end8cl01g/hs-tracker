@@ -115,7 +115,7 @@
         if (!date) { global.Animations.shake($('onboard-start-date')); return global.UI.toast('請選起始日期', true); }
         await global.DataLayer.setSetting('startDate', date);
         await global.DataLayer.setSetting('currentPhase', $('onboard-phase').value);
-        const om = $('onboarding-modal'); if (om) om.hidden = true;
+        global.UI.hideOnboarding();   // 要同時 hidden=true 與 close()，否則原生 dialog 還開著會鎖住整頁
         await App.refresh();
       });
 

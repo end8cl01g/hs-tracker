@@ -28,7 +28,15 @@
       } else l.hidden = true;
     },
     showApp() { const a = $('app'); if (a) a.hidden = false; },
-    showOnboarding() { const o = $('onboarding-modal'); if (o) o.hidden = false; },
+    /** 啟動第一條路徑：先拿掉 hidden 才 showModal（規範：hidden 的 dialog 不能 showModal）；老機沒 showModal 就退回疊層 */
+    showOnboarding() {
+      const o: any = $('onboarding-modal'); if (!o) return;
+      o.hidden = false; if (o.showModal) o.showModal();
+    },
+    hideOnboarding() {
+      const o: any = $('onboarding-modal'); if (!o) return;
+      o.hidden = true; if (o.close && o.open) o.close();
+    },
 
     renderAll(vm) {
       this.vm = vm;
@@ -40,7 +48,7 @@
       $('phase-badge').textContent = `Phase ${vm.phase} · ${esc((vm.workoutData?.phases?.[`phase${vm.phase}`]?.title) || '')}`;
       $('streak-display').textContent = `🔥 ${vm.streak.current} 天（最長 ${vm.streak.longest}）`;
       $('level-title').textContent = `Lv.${vm.level.level} ${esc(vm.level.title)}`;
-      $('xp-fill').style.width = `${Math.round((vm.level.progress || 0) * 100)}%`;
+      { const bar: any = $('xp-fill'); if (bar) { bar.max = 100; bar.value = Math.round((vm.level.progress || 0) * 100); } }   // 原生 <progress>，不再手刻 width%
       $('xp-text').textContent = vm.level.next ? `${vm.totalXP} / ${vm.level.next.xpRequired} XP` : `${vm.totalXP} XP（滿級）`;
 
       const card = $('workout-card');
@@ -104,49 +112,200 @@
       $('quick-note-input').value = saved?.notes || '';
     },
 
+    /** 星圖視圖狀態（拖曳平移＋滾輪/雙指縮放）；節點多就靠它看細節，不靠把圖壓扁 */
+    treeView: { x: 0, y: 0, k: 1 },
+    _treeBound: false,
+    _layoutCache: '' as any,
+    _layout: {} as any,
+
+    /**
+     * 放射狀星座配置：分支沿大圓均分、分支內依 tier 往外套環。
+     * 兩個實測教訓寫在這裡：
+     * ① 純放射一定會撞星（33 顆時最近只隔 6.7 單位，觸控點半徑 26）→ 加確定性斥力解算，不用亂數；
+     * ② 把超出畫布的星「夾到矩形邊界」會把整張圖壓成框邊一串珠鏈（看过預覽才知道）→
+     *    改成不夾座標、反過來依實際範圍算 viewBox，永遠看得見、也不會擠。
+     */
+    layoutTree(nodes) {
+      const key = nodes.map((n) => n.id).join(',');
+      if (key === this._layoutCache) return this._layout;
+      // 半徑 = 「這條支線的第幾步」，不是全域 tier：本樹有 8 條支線但深度 1~14 差很大
+      // （press 支線 8 顆、wrist 3 顆），拿 tier 當半徑會把內圈擠爆、外圈空轉（實測 viewBox 炸到 1900 寬）。
+      const R0 = 132; const STEP = 74; const MIN = 62;
+      const branches: string[] = [];
+      for (const n of nodes) { const b = (n as any).branch as string; if (b && branches.indexOf(b) < 0) branches.push(b); }
+      const groups: Map<string, any[]> = new Map();
+      for (const n of nodes) { const k = n.branch; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(n); }
+      const pos: any = {};
+      branches.forEach((bkey, bi) => {
+        const list = [...groups.get(bkey)].sort((a, b) => (a.tier - b.tier) || (a.id < b.id ? -1 : 1));
+        const base = -90 + (bi * 360) / Math.max(1, branches.length);
+        const byDepth = new Map<number, any[]>();
+        list.forEach((n, i) => { const d = i; if (!byDepth.has(d)) byDepth.set(d, []); byDepth.get(d).push(n); });
+        byDepth.forEach((sibs, d) => {
+          const r = R0 + d * STEP;
+          const fan = sibs.length > 1 ? Math.max(9, (MIN * 1.5 * 180) / (Math.PI * r)) : 0;
+          sibs.forEach((n, si) => {
+            const a = (base + (si - (sibs.length - 1) / 2) * fan) * Math.PI / 180;
+            pos[n.id] = { x: 500 + r * Math.cos(a), y: 350 + r * Math.sin(a) * 0.88, depth: d, tier: n.tier, name: n.name, branch: bkey };
+          });
+        });
+      });
+      // 剩下只處理「同一深度跨支線」的殘餘碰撞：沿切線推開（不改半徑，免得整張圖膨脹）
+      const ids = Object.keys(pos);
+      for (let it = 0; it < 10; it++) {
+        let moved = 0;
+        for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+          const a = pos[ids[i]], b = pos[ids[j]];
+          const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+          if (d >= MIN) continue;
+          moved++;
+          const push = (MIN - d) / 2, ux = dx / (d || 1), uy = dy / (d || 1);
+          a.x -= ux * push; a.y -= uy * push; b.x += ux * push; b.y += uy * push;
+          for (const p of [a, b]) {                        // 把被推開的星重新壓回所屬深度的圓周上（切線位移）
+            const want = R0 + (p.depth || 0) * STEP;
+            const rr = Math.hypot(p.x - 500, (p.y - 350) / 0.88) || 1;
+            const k = want / rr; p.x = 500 + (p.x - 500) * k; p.y = 350 + ((p.y - 350) / 0.88) * k * 0.88;
+          }
+        }
+        if (!moved) break;
+      }
+      for (const id of ids) { pos[id].x = +pos[id].x.toFixed(1); pos[id].y = +pos[id].y.toFixed(1); }
+      const xs = ids.map((i) => pos[i].x), ys = ids.map((i) => pos[i].y);
+      const pad = 56;      // 留給 halo(r22) 與放大後的名字
+      this._viewBox = [Math.min(470, Math.min(...xs) - pad), Math.min(318, Math.min(...ys) - pad),
+        Math.max(530, Math.max(...xs) + pad), Math.max(382, Math.max(...ys) + pad)];
+      this._layoutCache = key; this._layout = pos;
+      return pos;
+    },
+
+    _viewBox: [0, 0, 1000, 700] as any,
     renderTree(vm) {
       const nodes = vm.skillNodes || [];
-      $('tree-progress').textContent = `${vm.unlockedCount} / ${nodes.length} 已解鎖`;
-      const byBranch = new Map();
-      for (const n of nodes) {
-        if (!byBranch.has(n.branch)) byBranch.set(n.branch, { label: n.branch_label, items: [] });
-        byBranch.get(n.branch).items.push(n);
-      }
-      $('skill-tree-container').innerHTML = [...byBranch.values()].map((b) => {
-        const done = b.items.filter((n) => vm.skillStatuses[n.id]?.unlocked).length;
-        return `<div class="branch"><div class="branch-head"><span>${esc(b.label)}</span>
-          <span class="chip">${done}/${b.items.length}</span></div>
-          ${b.items.map((n) => {
-            const un = !!vm.skillStatuses[n.id]?.unlocked;
-            const can = !un && (n.requires || []).every((r) => vm.skillStatuses[r]?.unlocked)
-              && vm.totalXP >= (n.min_xp || 0) && (vm.streak.current >= (n.min_streak || 0));
-            return `<button class="node ${un ? 'unlocked' : can ? 'ready' : 'locked'}" data-skill="${esc(n.id)}" type="button">
-              <span class="node-tier">L${n.tier}</span><span class="node-name">${esc(n.name)}</span>
-              <span class="node-mark">${un ? '✅' : can ? '🔓' : '🔒'}</span></button>`;
-          }).join('')}</div>`;
+      const pos = this.layoutTree(nodes);
+      const st = vm.skillStatuses || {};
+      const pts = vm.points || { total: 0, spent: 0, available: 0 };
+      $('tree-progress').textContent = `${vm.unlockedCount} / ${nodes.length} 已解鎖｜技能點 ${pts.available} 可用（${pts.spent}/${pts.total} 已花）`;
+      const bar = $('tree-progressbar'); if (bar) { bar.max = nodes.length || 1; bar.value = vm.unlockedCount || 0; }
+
+      const stateOf = (n) => {
+        if (st[n.id] && st[n.id].unlocked) return 'unlocked';
+        const gated = (n.requires || []).every((r) => st[r] && st[r].unlocked)
+          && vm.totalXP >= (n.min_xp || 0) && vm.streak.current >= (n.min_streak || 0);
+        return gated ? (pts.available > 0 ? 'ready' : 'waiting') : 'locked';   // waiting = 條件到了但沒點數可花
+      };
+
+      const edges = nodes.flatMap((n) => (n.requires || []).map((r) => {
+        const a = pos[r], b = pos[n.id]; if (!a || !b) return [];
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+        const bend = Math.min(24, len * 0.1);                                   // 垂直方向微彎：太彎會變成掃過整張圖的意麵
+        const cx = mx - (dy / len) * bend, cy = my + (dx / len) * bend;
+        return `<path class="edge ${stateOf(n) === 'unlocked' ? 'on' : ''}" d="M${a.x} ${a.y} Q${cx.toFixed(1)} ${cy.toFixed(1)} ${b.x} ${b.y}"/>`;
+      })).join('');
+
+      const zoomed = Number(this.treeView.k) > 1.35;      // 放大才浮名字：像 Skyrim 那樣湊近看，而不是把圖壓扁
+      const dots = nodes.map((n) => {
+        const p = pos[n.id]; if (!p) return '';
+        const sv = stateOf(n);
+        return `<g class="sky-node ${sv}" data-skill="${esc(n.id)}" tabindex="0" role="button" aria-label="${esc(n.name)}（${sv}）">`
+          + `<circle class="halo" cx="${p.x}" cy="${p.y}" r="22"/><circle class="core" cx="${p.x}" cy="${p.y}" r="${sv === 'unlocked' ? 9 : 7}"/>`
+          + `<circle class="hit" cx="${p.x}" cy="${p.y}" r="26"/>`
+          + (zoomed ? `<text class="node-label" x="${p.x}" y="${(p.y - 27).toFixed(1)}">${esc(n.name)}</text>` : '') + `</g>`;
       }).join('');
-      $('skill-tree-container').querySelectorAll('[data-skill]').forEach((el) => {
-        el.addEventListener('click', () => this.openSkill((el as El).dataset.skill));
+      const maxDepth = Math.max(0, ...nodes.map((n) => (pos[n.id] && pos[n.id].depth) || 0));
+      const rings = Array.from({ length: maxDepth + 1 }, (_, i) => {
+        const r = 132 + i * 74;
+        return `<ellipse class="tier-ring" cx="500" cy="350" rx="${r}" ry="${(r * 0.88).toFixed(0)}"/>`;
+      }).join('');
+      const hub = `<g class="hub"><circle class="hub-dot" cx="500" cy="350" r="14"/><text x="500" y="344" class="hub-emoji">🤸</text><text x="500" y="376" class="hub-text">HANDSTAND</text></g>`;
+      const world = $('tree-world'); if (world) (world as any).innerHTML = rings + hub + edges + dots;
+      const vb = this._viewBox as number[];
+      const tp = $('tree-points'); if (tp) tp.textContent = pts.available > 0 ? `💥 ${pts.available} 點可花` : `升級才有點數（已花 ${pts.spent}/${pts.total}）`;
+
+      const svg: any = $('skill-tree');
+      if (svg && svg.setAttribute && vb) svg.setAttribute('viewBox', `${vb[0]} ${vb[1]} ${(vb[2] - vb[0]).toFixed(0)} ${(vb[3] - vb[1]).toFixed(0)}`);
+      if (svg && !svg.__skyBound) {
+        svg.__skyBound = 1;
+        this._bindTreePan(svg);
+        [...(document as any).querySelectorAll('[data-zoom]')].forEach((el: any) => {
+          if (!el.__z) { el.__z = 1; el.addEventListener('click', () => this.zoomTree(Number(el.dataset.zoom))); }
+        });
+      }
+      // 節點點擊走事件委託：SVG 每顆星都自己掛 listener 的話，重繪時會累積（重繪頻繁）
+      if (svg && !svg.__skyTap) {
+        svg.__skyTap = 1;
+        svg.addEventListener('click', (ev: any) => {
+          const g = ev && ev.target && ev.target.closest ? ev.target.closest('[data-skill]') : null;
+          if (g) this.openSkill(g.dataset.skill);
+        });
+      }
+    },
+
+    zoomTree(dir: number) {
+      const v = this.treeView;
+      if (dir === 0) { v.k = 1; v.x = 0; v.y = 0; }
+      else { const nk = v.k * (dir > 0 ? 1.25 : 0.8); v.k = Math.min(4, Math.max(0.5, Number(nk.toFixed(3)))); }
+      this.renderTree(this.vm);
+    },
+
+    /** 只碰 viewBox/transform，不改資料；touch-action:none 讓雙指不會誤滑到頁面 */
+    _bindTreePan(svg) {
+      const v = this.treeView; let drag: any = null; let pinch: any = null;
+      const world = () => svg.querySelector && svg.querySelector('#tree-world');
+      const apply = () => { const w = world(); if (w && w.setAttribute) w.setAttribute('transform', `translate(${v.x} ${v.y}) scale(${v.k.toFixed(3)})`); };
+      svg.addEventListener('pointerdown', (ev: any) => {
+        if (ev.target && ev.target.closest && ev.target.closest('.sky-node')) return;
+        drag = { x: ev.clientX, y: ev.clientY, ox: v.x, oy: v.y };
+        if (svg.setPointerCapture) svg.setPointerCapture(ev.pointerId);
       });
+      svg.addEventListener('pointermove', (ev: any) => { if (!drag) return; v.x = drag.ox + (ev.clientX - drag.x) * (1.1 / v.k); v.y = drag.oy + (ev.clientY - drag.y) * (1.1 / v.k); apply(); });
+      const up = (ev: any) => { if (drag && ev && svg.releasePointerCapture) { try { svg.releasePointerCapture(ev.pointerId); } catch (e) { /* 沒 capture 成功過也沒關係 */ } } drag = null; pinch = null; };
+      svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
+      svg.addEventListener('wheel', (ev: any) => { if (ev.preventDefault) ev.preventDefault(); const nk = v.k * (ev.deltaY < 0 ? 1.12 : 0.9); v.k = Math.min(4, Math.max(0.5, Number(nk.toFixed(3)))); apply(); }, { passive: false });
+      // 雙指縮放（iOS 上 wheel 不會觸發，一定要這條）
+      svg.addEventListener('touchstart', (ev: any) => { const t = ev.touches; if (t && t.length === 2) pinch = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }, { passive: true });
+      svg.addEventListener('touchmove', (ev: any) => { const t = ev.touches; if (!pinch || !t || t.length !== 2) return; const d = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+        const nk = v.k * (d / pinch); v.k = Math.min(4, Math.max(0.5, Number(nk.toFixed(3)))); pinch = d; apply(); if (ev.preventDefault) ev.preventDefault(); }, { passive: false });
     },
 
     openSkill(skillId) {
       const vm = this.vm; const node = vm.skillNodes.find((n) => n.id === skillId); if (!node) return;
       const st = vm.skillStatuses[skillId] || {};
-      $('skill-modal-content').innerHTML = `<h3>${node.unlocked || st.unlocked ? '✅' : '🔒'} ${esc(node.name)}</h3>
-        <p class="hint">${esc(node.desc || '')}</p>
-        <ul class="req-list">
-          <li>需 XP：${node.min_xp || 0}（目前 ${vm.totalXP}）</li>
-          <li>需連續：${node.min_streak || 0} 天（目前 ${vm.streak.current}）</li>
-          <li>前置：${(node.requires || []).map(esc).join(', ') || '無'}</li>
-          ${st.date_unlocked ? `<li>解鎖日：${esc(st.date_unlocked)}</li>` : ''}
-        </ul>
-        <label>示範影片 URL<input type="url" id="skill-video" value="${esc(st.video_url || '')}" placeholder="https://…"></label>
-        <label>筆記<textarea id="skill-notes">${esc(st.notes || '')}</textarea></label>
-        <div class="btn-row"><button class="btn-primary" id="skill-save" type="button">保存</button>
-        ${st.unlocked ? '' : '<button class="btn-secondary" id="skill-unlock" type="button">標記解鎖 (+50 XP)</button>'}
-        <button class="btn-secondary" id="skill-close" type="button">關閉</button></div>`;
-      $('skill-modal').hidden = false;
+      const pts = vm.points || { available: 0, total: 0, spent: 0 };
+      const un = !!(st.unlocked || node.unlocked);
+      const can = !un && (node.requires || []).every((r) => vm.skillStatuses[r] && vm.skillStatuses[r].unlocked)
+        && vm.totalXP >= (node.min_xp || 0) && vm.streak.current >= (node.min_streak || 0) && pts.available > 0;
+      const why = un ? '已解鎖' : !((node.requires || []).every((r) => vm.skillStatuses[r] && vm.skillStatuses[r].unlocked)) ? '先把前置節點點亮'
+        : vm.totalXP < (node.min_xp || 0) ? `XP 不足（需 ${node.min_xp}，目前 ${vm.totalXP}）`
+        : pts.available <= 0 ? `沒有技能點：升到 Lv.${(pts.total || 0) + 2} 才會拿到下一點` : '';
+      const host = $('skill-modal-content');
+      const SK = `<h3 id="sk-title"></h3><p class="hint" id="sk-desc"></p>
+        <ul class="req-list" id="sk-req"></ul><p class="hint ex-note" id="sk-warn" hidden></p>
+        <label>示範影片 URL<input type="url" id="skill-video" placeholder="https://…"></label>
+        <label>筆記<textarea id="skill-notes"></textarea></label>
+        <div class="btn-row">
+          <button class="btn-primary" id="skill-unlock" type="button">花 1 點解鎖</button>
+          <button class="btn-secondary" id="skill-save" type="button">保存</button>
+          <button class="btn-secondary" id="skill-close" type="button">關閉</button>
+        </div>`;
+      // 骨架來自 HTML 的原生 <template>（JS 只填內容，比整段字串拼裝好讀、XSS 面也小）
+      const tpl: any = (document as any).getElementById('tpl-skill-detail');
+      (host as any).innerHTML = (tpl && tpl.innerHTML) ? tpl.innerHTML : SK;
+      const set = (id: string, txt: string) => { const el = $(id); if (el) el.textContent = txt; };
+      set('sk-title', `${un ? '✅' : can ? '🔓' : '🔒'} ${node.name}`);
+      set('sk-desc', node.desc || '');
+      const req = $('sk-req');
+      if (req) (req as any).innerHTML = `<li>花費：1 技能點（可用 ${Number(pts.available) || 0}）</li>
+        <li>需 XP：${Number(node.min_xp) || 0}（目前 ${vm.totalXP}）</li>
+        <li>需連續：${Number(node.min_streak) || 0} 天（目前 ${vm.streak.current}）</li>
+        <li>前置：${(node.requires || []).length ? esc(node.requires.join(', ')) : '無'}</li>
+        ${st.date_unlocked ? `<li>解鎖日：${esc(st.date_unlocked)}</li>` : ''}`;
+      const warn = $('sk-warn'); if (warn) { warn.textContent = why || ''; (warn as any).hidden = !why; }
+      if ($('skill-video')) ($('skill-video') as any).value = st.video_url || '';
+      if ($('skill-notes')) ($('skill-notes') as any).value = st.notes || '';
+      const btn = $('skill-unlock');
+      if (btn) { (btn as any).hidden = !!un; (btn as any).disabled = !can; }
+      const dlg: any = $('skill-modal'); if (dlg) { dlg.hidden = false; if (dlg.showModal) dlg.showModal(); }
       $('skill-close').onclick = () => this.closeSkillAndRefresh();
       $('skill-save').onclick = async () => {
         await global.DataLayer.setSkillMeta(skillId, { videoUrl: $('skill-video').value, notes: $('skill-notes').value });
@@ -154,12 +313,12 @@
       };
       if ($('skill-unlock')) $('skill-unlock').onclick = async () => {
         const r = await global.GameEngine.tryUnlockSkill(skillId);
-        if (!r.ok) this.toast(`無法解鎖：${r.why}${r.need != null ? `（需 ${r.need}）` : ''}`, true);
-        else { global.Animations?.confetti?.(); this.toast('解鎖！+50 XP'); }
+        if (!r.ok) this.toast(r.why === 'no-points' ? '沒有技能點了——今天多練一組再回來' : `無法解鎖：${r.why}${r.need != null ? `（需 ${r.need}）` : ''}`, true);
+        else { global.Animations?.confetti?.(); this.toast('解鎖！節點點亮 ＋50 XP'); }
         this.closeSkillAndRefresh();
       };
     },
-    closeSkillAndRefresh() { const m = $('skill-modal'); if (m) m.hidden = true; this.checks.clear(); },
+    closeSkillAndRefresh() { const m: any = $('skill-modal'); if (m) { m.hidden = true; m.close && m.open && m.close(); } this.checks.clear(); this.renderTree(this.vm); },
 
     renderAchievements(vm) {
       const s = vm.badgeStats || {};

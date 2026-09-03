@@ -87,7 +87,20 @@
     return { isRestDay: false, dayKey, workout: days[dayKey], phaseData, today, mapped: true };
   }
 
-  /** 技能可否解鎖：需 dependencies 全解鎖 + 前一段 phase 完成度 */
+  /**
+   * Skyrim 式技能點：每升一級給 1 點（`perLevel` 可调），點數要「花」在節點上才算解鎖。
+   * 像 Skyrim 一樣不能 respec：花掉的點不退，所以 available = total - 已花。
+   * 為什麼不另開一張帳：總點數完全由等級推出、已花的由「已解鎖節點數」推出 ——
+   * 多存一份可變狀態就會出現「點數對不上」的 bug（本專案已被兩個枚舉/兩種真值咬過兩次）。
+   */
+  function skillPoints(level, spent, perLevel: number = 1) {
+    const lv = Math.max(1, Number(level) || 1);
+    const total = (lv - 1) * (Number(perLevel) || 1);
+    const used = Math.max(0, Number(spent) || 0);
+    return { level: lv, total, spent: used, available: Math.max(0, total - used) };
+  }
+
+  /** 技能可否解鎖：需 dependencies 全解鎖 + 前一段 phase 完成度 + 還有點數可花 */
   function canUnlock(node, statuses, opts: any = {}) {
     if (!node) return { ok: false, why: 'no-node' };
     if (statuses && statuses[node.id] && statuses[node.id].unlocked) return { ok: false, why: 'already' };
@@ -95,6 +108,7 @@
     const missing = deps.filter((d) => !(statuses && statuses[d] && statuses[d].unlocked));
     if (missing.length) return { ok: false, why: 'deps', missing };
     if (node.min_xp != null && (opts.totalXP || 0) < node.min_xp) return { ok: false, why: 'xp', need: node.min_xp };
+    if (opts.points != null && Number(opts.points) <= 0) return { ok: false, why: 'no-points', need: 1 };
     if (node.min_streak != null && (opts.streak || 0) < node.min_streak) return { ok: false, why: 'streak', need: node.min_streak };
     return { ok: true };
   }
@@ -141,7 +155,7 @@
   }
 
   const GameCore = {
-    LEVELS, levelFor, xpForExercises, streaks, todayPlan, canUnlock, earnedBadges, weeklyStats,
+    LEVELS, levelFor, xpForExercises, streaks, todayPlan, canUnlock, skillPoints, earnedBadges, weeklyStats,
   };
   global.GameCore = GameCore;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -313,3 +313,15 @@ test('每個會叫本地二進位的 npm script 都要先自愈依賴（node_mod
     assert.ok(/scripts\/deps\.mjs/.test(cmd), `${name} 沒先跑 deps.mjs：${cmd}`);
   }
 });
+
+test('`.deploy/*` 的 0600 由 scripts/secrets-mode.mjs 統一收緊，check 與 npm test 前置都要掛到', () => {
+  const helper = readFileSync(join(ROOT, 'scripts/secrets-mode.mjs'), 'utf8');
+  assert.match(helper, /export function tightenSecretModes/, '要有可共用的匯出（各處自己 chmod 會漂移）');
+  for (const f of ['scripts/check.mjs', 'package.json']) {
+    const src = readFileSync(join(ROOT, f), 'utf8');
+    assert.ok(/secrets-mode/.test(src), `${f} 必須走 secrets-mode（快照重啟會把 mode 掉回 644）`);
+  }
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).scripts.test;
+  assert.match(pkg, /node scripts\/secrets-mode\.mjs/, 'npm test 前要收緊一次，否則憑證權限紅燈會冒充功能缺陷');
+  assert.match(pkg, /ts:loose/, 'npm test 前must重建 build/ts/*.js，否則測的是舊 JS（實測踩過）');
+});

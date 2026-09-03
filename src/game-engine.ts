@@ -73,6 +73,7 @@
       return {
         today, settings, phase, plan, todayLog, exercises,
         totalXP, level, streak, skillStatuses, badgeStatuses, unlockedCount: unlocked, weekly,
+        points: Core.skillPoints(level.level, unlocked),
         skillNodes: (this.skillTreeData && this.skillTreeData.nodes) || [],
         badges: (this.badgesData && this.badgesData.badges) || [],
         kindLabels: (this.workoutData && this.workoutData.kind_labels) || {},
@@ -120,11 +121,13 @@
       const node = ((this.skillTreeData && this.skillTreeData.nodes) || []).find((n) => n.id === nodeId);
       const statuses = await DL().getAllSkillStatuses();
       const stats = await this.badgeStats();
-      const check = Core.canUnlock(node, statuses, { totalXP: stats.total_xp, streak: stats.streak_current });
-      if (!check.ok) return check;
+      const spent = await DL().getUnlockedCount();
+      const pts = Core.skillPoints(Core.levelFor(stats.total_xp).level, spent);
+      const check = Core.canUnlock(node, statuses, { totalXP: stats.total_xp, streak: stats.streak_current, points: pts.available });
+      if (!check.ok) return { ...check, points: pts };
       await DL().unlockSkill(nodeId);
       await DL().addXP(50, `skill ${nodeId}`, nodeId);
-      return { ok: true, node };
+      return { ok: true, node, points: pts };
     },
   };
   global.GameEngine = GameEngine;

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // scripts/check.mjs — 上線前靜態閉環檢查（不用瀏覽器也能抓出「檔名打錯」這種致命低级錯）
 import { readFileSync, existsSync, readdirSync, statSync, chmodSync } from 'node:fs';
+import { tightenSecretModes } from './secrets-mode.mjs';
 import { join } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
@@ -197,19 +198,12 @@ pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(b
   // 「焊死」的代价：.deploy 裡每一個檔都是長期憑證（Google refresh token、GAS 同步密鑰、GitHub PAT）
   const dir = join(ROOT, '.deploy');
   const secrets = existsSync(dir) ? readdirSync(dir).filter((f) => !f.endsWith('.md')) : [];
-  // 工作區快照不保證保留 mode（實測：容器重啟後 .deploy/* 變成 644）。光紅燈沒有意義——
-  // 使用者那端沒有 shell 可 chmod，所以檢查要順手把權限收緊，收不下來才算不合格。
-  const loose = secrets.filter((f) => (statSync(join(dir, f)).mode & 0o777) !== 0o600);
-  if (loose.length) {
-    for (const f of loose) { try { chmodSync(join(dir, f), 0o600); } catch (e) { /* 留給下面的 T 報警 */ } }
-    const still = loose.filter((f) => (statSync(join(dir, f)).mode & 0o777) !== 0o600);
-    T(!still.length, still.length
-      ? `.deploy/ 權限收緊失敗：${still.join(', ')}`
-      : `.deploy/ 機密檔權限已自動收緊回 0600：${loose.join(', ')}（快照重啟會掉 mode，這是常態）`,
-      '同容器其他程序仍讀得到長期憑證 → 手動 chmod 600 .deploy/*（可能挂在只讀媒體或不是擁有者）');
-  } else {
-    T(true, `.deploy/ 機密檔一律 0600（共 ${secrets.length} 檔）`, '');
-  }
+  // 工作區快照不保證保留 mode（實測：容器重啟後 .deploy/* 變回 644，還把測試弄紅）。光報警沒有意義——
+  // 使用者那端沒有 shell 可 chmod，所以檢查順手收緊；實作在 scripts/secrets-mode.mjs，`npm test` 前置也走同一份。
+  const sec = tightenSecretModes(ROOT, { files: secrets });
+  T(!sec.failed.length,
+    sec.failed.length ? '' : `.deploy/ 機密檔一律 0600（共 ${secrets.length} 檔${sec.fixed.length ? `，剛收緊 ${sec.fixed.join(', ')}` : ''}）`,
+    `.deploy/ 權限收緊失敗：${sec.failed.join(', ')} → 同容器其他程序仍讀得到長期憑證（可能挂在只讀媒體或不是擁有者）`);
   if (secrets.includes('.clasprc.json')) T(/myaccount\.google\.com\/permissions/.test(read('README.md')), 'Google 憑證焊在 repo 內時，README 必須寫明撤回步驟', '有 .deploy/.clasprc.json 卻沒文件：以後沒人知道這份授權怎麼收回去');
   if (secrets.includes('github-token')) T(/settings\/tokens|撤銷|撤掉/.test(read('README.md')), 'GitHub PAT 焊在 repo 內時，README 要寫明撤銷位置', '有 .deploy/github-token 卻沒撤回說明 → 全權限 PAT 會無限期活著');
 }

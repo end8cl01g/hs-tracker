@@ -97,7 +97,7 @@ js/
   game-engine.js      載 data/*.json、組視圖模型、徽章判定
   ui.js animations.js backup.js app.js   渲染／動畫／備份／啟動（含 SW 註冊）
 sw.js                 離線殼 + 設定檔 network-first（版本由 build 注入）
-data/                 課表、技能樹(36)、徽章(12) —— 改這裡就能改訓練計畫
+data/                 課表、技能星圖(33 節點)、徽章(15) —— 由 `npm run plan` 從腳本產生，別手改
 vendor/sql-wasm.{js,wasm}   sql.js 1.14.2 自架（不走任何 CDN）
 gas/                  Code.gs / Sheets.gs / Config.gs / Utils.gs + appsscript.json
 tests/                node:test：db / game-core / sync / sw / site / gas / gas-boot / scripts

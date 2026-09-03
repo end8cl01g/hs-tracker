@@ -23,7 +23,7 @@
     <p class="loading-sub" id="loading-error" hidden></p>
   </div>
 
-  <div id="onboarding-modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="初始設定">
+  <dialog id="onboarding-modal" class="modal-sheet" hidden aria-label="初始設定">
     <div class="modal-content">
       <h2>🤸 歡迎，未來的倒立者</h2>
       <p>設定訓練起始日（用來推算目前階段）：</p>
@@ -38,7 +38,7 @@
       </select>
       <button id="onboard-start" class="btn-primary">開始訓練旅程 🚀</button>
     </div>
-  </div>
+  </dialog>
 
   <div id="app" class="app" hidden>
     <header class="app-header">
@@ -57,7 +57,7 @@
         </div>
         <div class="level-bar" id="level-bar">
           <span class="level-title" id="level-title">Lv.1 新手</span>
-          <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
+          <progress id="xp-fill" class="xp-bar" max="100" value="0">0%</progress>
           <span class="xp-text" id="xp-text">0 / 500 XP</span>
         </div>
         <div id="workout-card" class="workout-card"></div>
@@ -73,10 +73,20 @@
 
       <section id="tab-tree" class="tab-panel">
         <div class="tree-header">
-          <h2>🌳 技能樹</h2>
+          <h2>🌌 技能星圖</h2>
           <span id="tree-progress">0 / — 已解鎖</span>
         </div>
-        <div id="skill-tree-container" class="skill-tree-container"></div>
+        <progress id="tree-progressbar" class="tree-progressbar" max="1" value="0">0</progress>
+        <div class="tree-tools">
+          <button class="chip" data-zoom="1" type="button" aria-label="放大星圖">＋</button>
+          <button class="chip" data-zoom="-1" type="button" aria-label="縮小星圖">−</button>
+          <button class="chip" data-zoom="0" type="button">置中</button>
+          <span class="chip" id="tree-points">技能點 —</span>
+        </div>
+        <!-- 星圖是原生 SVG：節點與連線由 ui.js 寫進 #tree-world（容器、拖曳縮放都在這裡，不在 JS 字串裡） -->
+        <svg id="skill-tree" class="skyrim-tree" viewBox="0 0 1000 700" role="img"
+             aria-label="技能星圖，點亮一個節點需花 1 技能點"><g id="tree-world"></g></svg>
+        <p class="hint">拖曳可平移、滾輪或雙指可縮放；放大後會浮出節點名。升級才拿得到技能點，花下去不能退（Skyrim 也不能 respec）。</p>
       </section>
 
       <section id="tab-achievements" class="tab-panel">
@@ -159,7 +169,16 @@
     <div id="level-up-overlay" class="level-up-overlay" hidden>
       <div class="level-up-content"><span>⬆️ LEVEL UP!</span><span id="level-up-title"></span></div>
     </div>
-    <div id="skill-modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="技能明細"><div class="modal-content" id="skill-modal-content"></div></div>
+    <dialog id="skill-modal" class="modal-sheet" hidden aria-label="技能明細">
+      <div class="modal-content" id="skill-modal-content"></div>
+    </dialog>
+    <template id="tpl-skill-detail"><h3 id="sk-title"></h3><p class="hint" id="sk-desc"></p>
+      <ul class="req-list" id="sk-req"></ul><p class="hint ex-note" id="sk-warn" hidden></p>
+      <label>示範影片 URL<input type="url" id="skill-video" placeholder="https://…"></label>
+      <label>筆記<textarea id="skill-notes"></textarea></label>
+      <div class="btn-row"><button class="btn-primary" id="skill-unlock" type="button">花 1 點解鎖</button>
+        <button class="btn-secondary" id="skill-save" type="button">保存</button>
+        <button class="btn-secondary" id="skill-close" type="button">關閉</button></div></template>
     <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
   </div>
 

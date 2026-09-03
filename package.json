@@ -6,7 +6,7 @@
   "description": "Press to Handstand Tracker — 離線優先 PWA（sql.js + GitHub Pages + GAS Proxy）",
   "scripts": {
     "pretest": "node scripts/deps.mjs && npm run gas:build && npm run build && npm run ts:loose",
-    "test": "node --test tests/",
+    "test": "node scripts/secrets-mode.mjs >/dev/null && npm run --silent ts:loose && node --test tests/",
     "check": "node scripts/deps.mjs && node scripts/check.mjs",
     "build": "node scripts/deps.mjs && rollup -c && node scripts/build.mjs",
     "size": "node scripts/build.mjs --size-only",
@@ -22,7 +22,8 @@
     "dev": "node scripts/deps.mjs && rollup -c -w",
     "ts:loose": "node scripts/deps.mjs && tsc -p tsconfig.json --outDir build/ts --noEmit false --module commonjs --moduleResolution node10",
     "plan": "node scripts/gen-plan.mjs",
-    "plan:check": "node scripts/gen-plan.mjs --check"
+    "plan:check": "node scripts/gen-plan.mjs --check",
+    "tree:preview": "node scripts/deps.mjs && node scripts/tree-preview.mjs"
   },
   "devDependencies": {
     "@google/clasp": "^3.4.1",
