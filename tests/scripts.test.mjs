@@ -58,19 +58,24 @@ test('.gitignore 把憑證與一次性 token 檔全部擋掉', () => {
     assert.ok(g.includes(need), `.gitignore 缺 ${need}`);
   }
   // Bootstrap.gs 只在部署進行中存在（合法），但決不可被 git 追蹤
-  const tracked = execFileSync('git', ['ls-files', '--', 'gas/Bootstrap.gs', '.deploy/gas.json'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  const files = ['gas/dist/Bootstrap.gs', '.deploy/gas.json'];   // Bootstrap.gs 改放 dist（clasp 只推 dist）
+  const tracked = execFileSync('git', ['ls-files', '--', ...files], { cwd: ROOT, encoding: 'utf8' }).trim();
   assert.equal(tracked, '', '一次性 token / 密鑰檔被 git 追蹤了：' + tracked);
-  const ig = execFileSync('git', ['check-ignore', '-q', 'gas/Bootstrap.gs'], { cwd: ROOT, encoding: 'utf8' });
-  assert.equal(ig.trim(), '', 'git check-ignore 應認得 gas/Bootstrap.gs');
+  for (const f of [...files, 'gas/dist/Code.gs', 'build/app.js']) {
+    execFileSync('git', ['check-ignore', '-q', f], { cwd: ROOT, encoding: 'utf8' });
+  }
 });
 
-test('gas/.claspignore 不會把四個 .gs 擋掉（擋了就是 push 出空專案）', () => {
+test('clasp 只推 gas/dist 的產物，且 .claspignore 不會把 Code.gs 擋掉', () => {
+  const cfg = JSON.parse(readFileSync(join(ROOT, 'gas', '.clasp.json'), 'utf8'));
+  assert.equal(cfg.rootDir, 'dist', 'rootDir 必須是 dist：源碼是 .ts，推上去雲端會看不懂');
   const p = join(ROOT, 'gas', '.claspignore');
   assert.ok(existsSync(p), '缺 gas/.claspignore');
   const lines = readFileSync(p, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
-  for (const f of ['Code.gs', 'Sheets.gs', 'Config.gs', 'Utils.gs', 'appsscript.json']) {
-    assert.ok(!lines.includes(f) && !lines.includes('*.gs') && !lines.includes('**/*'), `${f} 被 .claspignore 擋掉了`);
+  for (const f of ['Code.gs', 'appsscript.json']) {
+    assert.ok(!lines.includes(f) && !lines.includes('*.gs') && !lines.includes('**/*'), `${f} 被 .claspignore 擋掉了 → push 出空專案`);
   }
+  assert.ok(lines.includes('*.ts'), '.claspignore 要擋 *.ts（雙重保險：rootDir 已指 dist）');
 });
 
 test('deploy-gas.mjs 解析不到 deploymentId 時會明確失敗而不是亂猜 URL', async () => {

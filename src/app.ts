@@ -1,9 +1,9 @@
-// js/app.js — 啟動與事件綁線
+// src/app.ts — 啟動與事件綁線
 // todo 1.1（最關鍵的一條修正）：原規格寫了 sw.js 卻從沒 register()（Prompt.md 全文 grep serviceWorker = 0）
 // → SW 不會安裝、離線能力與 PWA 安裝性全部失效。下面的 registerServiceWorker() 補上這條。
 (function (global) {
   'use strict';
-  const $ = (id) => document.getElementById(id);
+  const $ = (id: string): El => document.getElementById(id) as unknown as El;
   const D = () => global.DateUtils;
 
   const App = {
@@ -167,22 +167,22 @@
 
       // ---- Settings ----
       $('setting-start-date')?.addEventListener('change', async (e) => {
-        await global.DataLayer.setSetting('startDate', e.target.value); await App.refresh();
+        await global.DataLayer.setSetting('startDate', ((e.target) as unknown as El).value); await App.refresh();
       });
       $('setting-phase')?.addEventListener('change', async (e) => {
-        await global.DataLayer.setSetting('currentPhase', e.target.value);
+        await global.DataLayer.setSetting('currentPhase', ((e.target) as unknown as El).value);
         await global.DataLayer.setSetting('phase_manual', '1');
         await App.refresh();
       });
       $('setting-gas-url')?.addEventListener('change', async (e) => {
-        const v = e.target.value.trim();
+        const v = ((e.target) as unknown as El).value.trim();
         if (v && !/^https:\/\/script\.google\.com\/macros\/s\//.test(v)) {
           global.UI.toast('URL 看起來不是 GAS Web App（應為 https://script.google.com/macros/s/…/exec）', true);
         }
         await global.DataLayer.setSetting('gas_url', v); await App.refresh();
       });
       $('setting-gas-secret')?.addEventListener('change', async (e) => {
-        await global.DataLayer.setSetting('gas_secret', e.target.value.trim());
+        await global.DataLayer.setSetting('gas_secret', ((e.target) as unknown as El).value.trim());
         global.UI.toast('密鑰已更新（只存本機）');
       });
 
@@ -202,9 +202,9 @@
       $('btn-export')?.addEventListener('click', () => global.BackupManager.exportJSON());
       $('btn-import')?.addEventListener('click', () => $('import-file-input')?.click());
       $('import-file-input')?.addEventListener('change', (e) => {
-        const f = e.target.files?.[0];
+        const f = ((e.target) as unknown as El).files?.[0];
         if (f) global.BackupManager.importFromFile(f).catch((err) => global.UI.toast(`匯入失敗：${err.message}`, true));
-        e.target.value = '';
+        ((e.target) as unknown as El).value = '';
       });
       $('btn-reset')?.addEventListener('click', async () => {
         if (!confirm('確定要清空本機所有訓練資料？（雲端已同步的列不會被刪）')) return;

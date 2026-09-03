@@ -162,19 +162,12 @@
     <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
   </div>
 
-  <script src="js/build-info.js"></script>
+  <script>
+    // 版號由 scripts/build.mjs 在部署前注入（以前是多餘載入兩次的 js/build-info.js，現在是 bundle 的副作用之一）
+    window.BUILD = '__BUILD__';
+    window.APP_VERSION = '2.0.0';
+  </script>
   <script src="vendor/sql-wasm.js"></script>
-  <script src="js/dates.js"></script>
-  <script src="js/game-core.js"></script>
-  <script src="js/build-info.js"></script>
-  <script src="js/db.js"></script>
-  <script src="js/data-layer.js"></script>
-  <script src="js/gas-proxy.js"></script>
-  <script src="js/sync-manager.js"></script>
-  <script src="js/game-engine.js"></script>
-  <script src="js/animations.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/backup.js"></script>
-  <script src="js/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

@@ -63,10 +63,10 @@ function bootstrapSecret_() {
 /** 部署前檢查：一次看完權限/設定是否齊備 */
 function doctor_() {
   const props = PropertiesService.getScriptProperties();
-  const report = {
+  const report: Record<string, any> = {
     secret_configured: !!props.getProperty('SHARED_SECRET'),
     sheet_id: props.getProperty('SHEET_ID') ? 'ok' : '將自動建立',
-    config_base: props.getProperty('CONFIG_BASE_URL') || CONFIG_BASE_URL,
+    config_base: configBaseUrl_(),   // 遷移到 TS 時抓到的真 bug：原本寫 CONFIG_BASE_URL（不存在）→ doctor_ 一定 ReferenceError
     sheets: Object.keys(HEADERS),
     now: nowISO_(),
   };

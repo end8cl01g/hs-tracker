@@ -7,7 +7,7 @@ import { join, relative } from 'node:path';
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 const DIST = join(ROOT, 'dist');
 const sizeOnly = process.argv.includes('--size-only');
-const COPY = ['index.html', 'manifest.json', 'css', 'js', 'data', 'icons', 'vendor', 'sw.js', '.nojekyll'];
+const COPY = ['index.html', 'manifest.json', 'css', 'data', 'icons', 'vendor', '.nojekyll'];  // app.js / sw.js 由 rollup 產在 build/，下面單獨放進 dist
 
 function sha() {
   try { return execSync('git rev-parse --short HEAD', { cwd: ROOT }).toString().trim(); } catch { return 'local'; }
@@ -52,9 +52,6 @@ function main() {
     return;
   }
 
-  writeFileSync(join(ROOT, 'js', 'build-info.js'),
-    `// 由 scripts/build.mjs 產生，勿手改（index.html 載入，UI 用它顯示 build）\nwindow.BUILD = ${JSON.stringify(BUILD)};\nwindow.APP_VERSION = '2.0.0';\n`);
-
   rmSync(DIST, { recursive: true, force: true });
   mkdirSync(DIST, { recursive: true });
   for (const item of COPY) {
@@ -62,6 +59,18 @@ function main() {
     if (!existsSync(from)) { console.error(`✗ 缺少 ${item}（build 中斷）`); process.exit(1); }
     cpSync(from, join(DIST, item), { recursive: true });
   }
+
+  for (const f of ['app.js', 'sw.js']) {
+    const from = join(ROOT, 'build', f);
+    if (!existsSync(from)) { console.error(`✗ 缺 build/${f} → 先跑 npm run bundle（rollup 從 src/*.ts 打包）`); process.exit(1); }
+    cpSync(from, join(DIST, f));
+  }
+
+  // index.html 的內嵌 <script> 帶 __BUILD__（UI 顯示版號用）；與 sw 同一套注入，避免雨處不同步
+  const htmlPath = join(DIST, 'index.html');
+  const html = readFileSync(htmlPath, 'utf8').replace("'__BUILD__'", `'${BUILD}'`);
+  if (html.includes('__BUILD__')) { console.error('✗ index.html 的 __BUILD__ 沒被替換'); process.exit(1); }
+  writeFileSync(htmlPath, html);
 
   const swPath = join(DIST, 'sw.js');
   const sw = readFileSync(swPath, 'utf8').replace("'__BUILD__'", `'${BUILD}'`);

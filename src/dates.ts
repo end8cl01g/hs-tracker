@@ -1,4 +1,4 @@
-// js/dates.js — 一切日期運算的地基：只用「本機日曆日」，不碰 UTC
+// src/dates.ts — 一切日期運算的地基：只用「本機日曆日」，不碰 UTC
 // 規格缺陷修正 todo 1.6：SQLite datetime('now') 是 UTC、new Date('YYYY-MM-DD') 是 UTC 午夜，
 // 在 HK(+8) 会让「今天」跟 streak 差一天。全部改由這裡統一。
 (function (global) {
@@ -34,7 +34,7 @@
   function dayDiff(a, b) {
     const x = fromISODate(a), y = fromISODate(b);
     if (!x || !y) return NaN;
-    return Math.round((y - x) / 86400000);
+    return Math.round((Number(y) - Number(x)) / 86400000);   // Date 相減在 TS 要明確轉數值
   }
 
   function addDays(iso, n) {
@@ -62,7 +62,5 @@
     toISODate, fromISODate, nowStamp, dayDiff, addDays, weekdayOf, weekdayKey, isValidISODate,
     todayISO: () => toISODate(new Date()),
   };
-
-  if (typeof module !== 'undefined' && module.exports) module.exports = DateUtils;
   global.DateUtils = DateUtils;
 })(typeof window !== 'undefined' ? window : globalThis);

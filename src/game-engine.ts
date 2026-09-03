@@ -1,4 +1,4 @@
-// js/game-engine.js — 載設定檔（data/*.json）＋把 DB 狀態攪成 UI 要的視圖模型
+// src/game-engine.ts — 載設定檔（data/*.tson）＋把 DB 狀態攪成 UI 要的視圖模型
 // 規格缺陷 todo 1.2：config 一律用**相對路徑**，由 SW 做 network-first；
 // 不使用任何 CDN。Part 1 缺件的語意在此重寫為單一實作來源。
 (function (global) {
@@ -11,9 +11,9 @@
 
     /** @param {Function} [fetchImpl] 單測可注入 */
     async loadConfig(fetchImpl) {
-      const f = fetchImpl || ((...a) => fetch(...a));
+      const f: any = fetchImpl || ((...a: any[]) => (fetch as any)(...a));
       const files = { workout: 'data/workout.json', skills: 'data/skills.json', badges: 'data/badges.json' };
-      const out = {};
+      const out: any = {};
       const results = await Promise.all(Object.entries(files).map(async ([k, url]) => {
         try {
           const r = await f(url, { cache: 'no-store' });
@@ -29,7 +29,7 @@
         if (k === 'badges') this.badgesData = json;
       }
       this.configMeta = out;
-      const failed = Object.entries(out).filter(([, v]) => !v.ok);
+      const failed = Object.entries(out).filter(([, v]) => !(v as any).ok);
       if (failed.length) throw new Error(`設定檔載入失敗：${failed.map(([k]) => k).join(', ')}（檢查 data/ 是否部署）`);
       return out;
     },
@@ -127,7 +127,5 @@
       return { ok: true, node };
     },
   };
-
-  if (typeof module !== 'undefined' && module.exports) module.exports = { GameEngine };
   global.GameEngine = GameEngine;
 })(typeof window !== 'undefined' ? window : globalThis);

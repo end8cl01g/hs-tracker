@@ -91,8 +91,8 @@ function loadUI() {
     fetch: async () => ({ ok: true, status: 200, json: async () => ({}) }),
   });
   ctx.window = ctx;
-  runInContext(read('js/ui.js'), ctx, { filename: 'js/ui.js' });
-  runInContext(read('js/animations.js'), ctx, { filename: 'js/animations.js' });
+  runInContext(read('build/ts/ui.js'), ctx, { filename: 'build/ts/ui.js' });
+  runInContext(read('build/ts/animations.js'), ctx, { filename: 'build/ts/animations.js' });
   ctx.UI.vm = {
     skillNodes: [{ id: 's1', name: '靠牆倒立', min_xp: 450, min_streak: 0, requires: [] }],
     skillStatuses: { s1: { unlocked: false, video_url: '', notes: '' } },
@@ -161,7 +161,7 @@ test('技能 modal：開 → 填 → 存 → 關，innerHTML 注入的按鈕也�
 });
 
 test('Esc 關閉的責任在 app.js：必須監聽 keydown 並呼叫 closeSkillAndRefresh', () => {
-  const app = read('js/app.js');
+  const app = read('build/ts/app.js');
   assert.match(app, /addEventListener\('keydown'/);
   assert.match(app, /Escape/);
   assert.match(app, /closeSkillAndRefresh\(\)/);
@@ -184,7 +184,7 @@ test('Animations.levelUp 用同一套顯隱機制', () => {
 });
 
 test('政策：全站不得再出現 classList 切 hidden（混用就是這次卡死的原因）', () => {
-  for (const f of ['js/ui.js', 'js/app.js', 'js/animations.js', 'js/game-engine.js', 'js/backup.js']) {
+  for (const f of ['src/ui.ts', 'src/app.ts', 'src/animations.ts', 'src/game-engine.ts', 'src/backup.ts']) {
     const s = read(f);
     assert.ok(!/classList\s*\.\s*(add|remove|toggle)\(\s*['"]hidden['"]/.test(s), `${f} 還用 classList 切 hidden`);
   }

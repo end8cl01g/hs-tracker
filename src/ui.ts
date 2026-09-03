@@ -1,7 +1,7 @@
-// js/ui.js — DOM 渲染（4 個分頁）。只做渲染與事件轉發，業務在 GameEngine/DataLayer。
+// src/ui.ts — DOM 渲染（4 個分頁）。只做渲染與事件轉發，業務在 GameEngine/DataLayer。
 (function (global) {
   'use strict';
-  const $ = (id) => document.getElementById(id);
+  const $ = (id: string): El => document.getElementById(id) as unknown as El;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const UI = {
@@ -12,7 +12,7 @@
         btn.addEventListener('click', () => {
           document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b === btn));
           document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
-          $(`tab-${btn.dataset.tab}`)?.classList.add('active');
+          $(`tab-${(btn as El).dataset.tab}`)?.classList.add('active');
         });
       });
     },
@@ -54,7 +54,7 @@
       $('btn-complete').disabled = false;
       const saved = vm.todayLog;
       const exs = p.workout || [];
-      const savedByName = new Map((vm.exercises || []).map((e) => [e.exercise_name, e]));
+      const savedByName: Map<string, any> = new Map((vm.exercises || []).map((e) => [e.exercise_name, e]));
       const rows = exs.map((e, i) => {
         const done = saved ? !!savedByName.get(e.name)?.completed : !!this.checks.get(e.name);
         return `<label class="ex-row ${done ? 'done' : ''}" data-name="${esc(e.name)}">
@@ -71,9 +71,9 @@
 
       card.querySelectorAll('input[type=checkbox]').forEach((cb) => {
         cb.addEventListener('change', () => {
-          const name = cb.closest('.ex-row').dataset.name;
-          this.checks.set(name, cb.checked);
-          cb.closest('.ex-row').classList.toggle('done', cb.checked);
+          const row = cb.closest('.ex-row') as El;
+          this.checks.set(row.dataset.name, (cb as El).checked);
+          row.classList.toggle('done', (cb as El).checked);
         });
       });
       if (saved && !this.checks.size) {
@@ -104,7 +104,7 @@
           }).join('')}</div>`;
       }).join('');
       $('skill-tree-container').querySelectorAll('[data-skill]').forEach((el) => {
-        el.addEventListener('click', () => this.openSkill(el.dataset.skill));
+        el.addEventListener('click', () => this.openSkill((el as El).dataset.skill));
       });
     },
 

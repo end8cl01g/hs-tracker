@@ -34,10 +34,12 @@ test('wasm 必須以 application/wasm 送出（否則實例化會退回整檔進
   assert.ok(buf.byteLength > 500000, `wasm 太小：${buf.byteLength}`);
 });
 
-test('index.html 的每個本地引用都能 200（含 12 支 js 與 css/manifest/icons）', async () => {
+test('index.html 的每個本地引用都能 200（前端已打包：JS 只剩一支 app.js）', async () => {
   const html = readFileSync(join(DIR, 'index.html'), 'utf8');
   const refs = [...html.matchAll(/(?:src|href)="([^"]+)"/g)].map((m) => m[1]).filter((u) => !/^(https?:|data:|#|mailto:)/.test(u));
-  assert.ok(refs.length >= 14, `引用太少：${refs.length}`);
+  assert.ok(refs.length >= 5, `引用太少：${refs.length}`);
+  assert.ok(refs.some((r) => /app\.js$/.test(r)), 'index.html 沒載入 app.js（rollup bundle）');
+  assert.ok(!refs.some((r) => /\/js\/[a-z-]+\.js$/.test(r)), '還引用舊的 js/*.js 分檔（那些已併進 bundle）');
   for (const ref of refs) {
     const r = await get('/' + ref.replace(/^\.\//, '').replace(/^\//, ''));
     assert.equal(r.status, 200, `${ref} → ${r.status}`);
@@ -69,13 +71,13 @@ test('sw.js 已被 build 戳過版本，不留 __BUILD__', async () => {
   const src = await (await get('/sw.js')).text();
   assert.ok(!src.includes('__BUILD__'), 'sw.js 仍含 __BUILD__ → cache key 固定，改版不會生效');
   assert.match(src, /const VERSION = '[^']+'/);
-  assert.match(src, /navigator\.serviceWorker|self\.addEventListener\('install'/);
+  assert.match(src, /navigator\.serviceWorker|addEventListener\(['"]install['"]/);   // sw.ts 用 `sw.addEventListener`（收型用別名），所以只認 'install' 事件本身
 });
 
 test("JS 裡 \$('id') 用到的節點必須都存在于 index.html（防接錯線）", () => {
   const html = readFileSync(join(DIR, 'index.html'), 'utf8');
   const ids = new Set([...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
-  const jsFiles = ['js/app.js', 'js/ui.js', 'js/backup.js', 'js/animations.js', 'js/game-engine.js']
+  const jsFiles = ['app.js']   // 前端已打包成單檔（rollup），$() 呼叫都還在裡面
     .filter((f) => existsSync(join(DIR, f)));
   const missing = [];
   for (const f of jsFiles) {

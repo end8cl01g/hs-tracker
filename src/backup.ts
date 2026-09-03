@@ -1,4 +1,4 @@
-// js/backup.js — 匯出 / 匯入 JSON（含 iOS 7 天踢資料的自救通道：自動備檔到 GAS 端）
+// src/backup.ts — 匯出 / 匯入 JSON（含 iOS 7 天踢資料的自救通道：自動備檔到 GAS 端）
 (function (global) {
   'use strict';
   const D = () => global.DateUtils;
@@ -27,7 +27,7 @@
       let payload;
       try { payload = JSON.parse(text); } catch (e) { global.UI.toast(`JSON 解析失敗：${e.message}`, true); return { ok: false }; }
       if (!payload?.tables) { global.UI.toast('不是本 App 的備份檔（缺 tables）', true); return { ok: false }; }
-      const counts = Object.entries(payload.tables).map(([t, r]) => `${t}:${r.length}`).join(' ');
+      const counts = Object.entries<any>(payload.tables).map(([t, r]) => `${t}:${r.length}`).join(' ');
       const yes = confirm(`匯入會「整庫取代」目前資料。\n備份內容：${counts}\n確定繼續？`);
       if (!yes) return { ok: false, cancelled: true };
       await global.DataLayer.importAll(payload);
@@ -45,7 +45,5 @@
       return res;
     },
   };
-
-  if (typeof module !== 'undefined' && module.exports) module.exports = { BackupManager };
   global.BackupManager = BackupManager;
 })(typeof window !== 'undefined' ? window : globalThis);

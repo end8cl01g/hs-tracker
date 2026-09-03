@@ -1,4 +1,4 @@
-// js/data-layer.js — 對 DBManager 的唯一資料存取面（規格 Part 1 缺件，語意在此重寫並寫明）
+// src/data-layer.ts — 對 DBManager 的唯一資料存取面（規格 Part 1 缺件，語意在此重寫並寫明）
 // 全部寫入都帶本機時間戳 updated_at（todo 1.6），衝突解決採 LWW + 記錄（見 upsertWithConflictResolution）。
 (function (global) {
   'use strict';
@@ -157,7 +157,7 @@
     // ---------- 同步 ----------
     /** 一次回傳所有表待同步的列；badges/xp_log 也含進來（原規格漏了 badges 的索引） */
     getUnsyncedRows() {
-      const out = {};
+      const out: any = {};
       for (const [t, spec] of Object.entries(TABLES)) {
         out[t] = DB.query(`SELECT * FROM ${t} WHERE synced = 0`);
         out[t].forEach((r) => { if (!r.updated_at) r.updated_at = r.created_at || ''; });
@@ -212,7 +212,7 @@
     },
     /** 匯出全庫（BackupManager / 雲端備份用） */
     exportAll() {
-      const out = { exported_at: stamp(), app_version: global.APP_VERSION || 'dev', tables: {} };
+      const out: any = { exported_at: stamp(), app_version: global.APP_VERSION || 'dev', tables: {} };
       for (const t of Object.keys(TABLES)) out.tables[t] = DB.query(`SELECT * FROM ${t}`);
       out.tables.settings = DB.query('SELECT * FROM settings WHERE key != ?', ['gas_secret']);
       return Promise.resolve(out);
@@ -220,7 +220,7 @@
     /** 匯入：整庫取代（使用者明確要求的動作，不做 LWW） */
     importAll(payload) {
       return DB.tx(() => {
-        for (const [t, rows] of Object.entries(payload.tables || {})) {
+        for (const [t, rows] of Object.entries<any>(payload.tables || {})) {
           if (!TABLES[t]) continue;
           DB.run(`DELETE FROM ${t}`);
           for (const r of rows) insertRow(t, r);
@@ -228,7 +228,5 @@
       });
     },
   };
-
-  if (typeof module !== 'undefined' && module.exports) module.exports = { DataLayer, newer, TABLES };
   global.DataLayer = DataLayer;
 })(typeof window !== 'undefined' ? window : globalThis);

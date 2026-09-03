@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (f) => readFileSync(join(ROOT, 'gas', f), 'utf8');
+const BUNDLE = 'dist/Code.gs';   // rollup 產物：雲端跑的就是它，不是 .ts 源碼
 
 function makeEnv({ setupToken } = {}) {
   const store = new Map();
@@ -49,7 +50,7 @@ function makeEnv({ setupToken } = {}) {
 
   ctx.__calls = calls;
   runInContext(
-    [read('Utils.gs'), setupToken ? `const SETUP_TOKEN = ${JSON.stringify(setupToken)};` : '', read('Code.gs'), stubs].join('\n'),
+    [setupToken ? `const SETUP_TOKEN = ${JSON.stringify(setupToken)};` : '', read(BUNDLE), stubs].join('\n'),
     ctx,
     { filename: 'gas-combined.gs' },
   );
@@ -118,7 +119,7 @@ test('節流用 Properties（不是 CacheService），超數回 rate-limited + r
     }
   }
   assert.ok([...store.keys()].some((k) => k.startsWith('RATE_dev-r_')), '計數要存在 Properties，才不會被 CacheService FIFO 逐出');
-  const utils = read('Utils.gs');
+  const utils = read('src/utils.ts');
   assert.ok(!/CacheService\s*\.\s*(get|put|remove)/.test(utils), 'allowRate_ 不能用 CacheService（6h 上限 + FIFO 逐出會讓計數消失）');
   assert.match(/function allowRate_[\s\S]*?\n}/.exec(utils)[0], /PropertiesService/);
   void ctx;

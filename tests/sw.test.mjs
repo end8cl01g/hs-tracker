@@ -1,4 +1,5 @@
-// tests/sw.test.mjs — 在 node 裡用假 Cache/Fetch 執行「真實的 sw.js」
+// tests/sw.test.mjs — 在 node 裡用假 Cache/Fetch 執行「真實的 SW」：跑 build/sw.js（rollup 從 src/sw.ts 編出的那份），
+// 不是另寫測試版，也不是直接吃 .ts（node 看不懂型別）。
 // 驗 4 件事：PRECACHE 完整性（原規格列了 cdnjs 檔 → 離線首載必掛）、data/ network-first、
 // GAS 請求不進快取、快取 key 隨 build 變（否則改版無效）。
 import { test } from 'node:test';
@@ -48,7 +49,7 @@ function makeCacheStore() {
 
 /** 把 sw.js 跑起來，回傳觸發器 */
 function loadSW({ build = 'test-build', fetchImpl } = {}) {
-  const src = readFileSync(join(ROOT, 'sw.js'), 'utf8').replace("'__BUILD__'", `'${build}'`);
+  const src = readFileSync(join(ROOT, 'build', 'sw.js'), 'utf8').replace("'__BUILD__'", `'${build}'`);
   const { caches } = makeCacheStore();
   const events = {};
   const calls = { fetch: 0, respondWith: [] };
@@ -66,7 +67,7 @@ function loadSW({ build = 'test-build', fetchImpl } = {}) {
   ctx.self = ctx; ctx.globalThis = ctx; ctx.serviceWorker = ctx;
   ctx.location = ctx.location || { origin: 'https://me.github.io', href: 'https://me.github.io/hs-tracker/sw.js' };
   vm.createContext(ctx);
-  vm.runInContext(src, ctx, { filename: 'sw.js' });
+  vm.runInContext(src, ctx, { filename: 'build/sw.js' });
 
   const ev = (init) => ({ ...init, respondWith: (p) => calls.respondWith.push(p), waitUntil: (p) => (calls.waitUntil = p) });
   return {
@@ -85,11 +86,12 @@ function loadSW({ build = 'test-build', fetchImpl } = {}) {
 const req = (url, method = 'GET') => ({ url, method, headers: { get: () => null }, clone() { return this; } });
 
 test('PRECACHE 不含任何外部 CDN，且每一項在 repo 裡都存在', async () => {
-  const src = readFileSync(join(ROOT, 'sw.js'), 'utf8');
+  const src = readFileSync(join(ROOT, 'build', 'sw.js'), 'utf8');
   const list = [...src.matchAll(/'\.\/([^']+)'/g)].map((m) => m[1]);
-  assert.ok(list.length >= 20, `PRECACHE 太少（${list.length}）：shell 必須完整預熱`);
+  assert.ok(list.length >= 10, `PRECACHE 太少（${list.length}）：shell 必須完整預熱（JS 已收成一支 app.js，但 css/data/icons/vendor 都要在）`);
   assert.ok(!/cdnjs|jsdelivr|unpkg|https:/.test(src.split('const PRECACHE')[1].split('];')[0]), 'PRECACHE 混入外部 URL');
-  for (const f of list) assert.ok(existsSync(join(ROOT, f)), `PRECACHE 列了不存在的 ${f} → cache.addAll 會整批失敗，SW 卡在同一版本`);
+  // app.js 是 rollup 產物（root 沒有、build/ 或 dist/ 有），所以兩個位置都算存在
+  for (const f of list) assert.ok(existsSync(join(ROOT, f)) || existsSync(join(ROOT, 'build', f)), `PRECACHE 列了不存在的 ${f} → cache.addAll 會整批失敗，SW 卡在同一版本`);
   assert.ok(list.includes('vendor/sql-wasm.wasm') && list.includes('vendor/sql-wasm.js'), 'WASM 沒進 PRECACHE → 離線開不起來（todo 1.2/1.1）');
 });
 
@@ -136,10 +138,10 @@ test('離線且沒快取時回 Response.error()，不能回 200 假資料', asyn
 test('shell 走 cache-first：命中快取就不打網路', async () => {
   const sw = loadSW();
   await sw.install();
-  const res = await sw.fetchEvent(req('https://me.github.io/hs-tracker/js/db.js'));
+  const res = await sw.fetchEvent(req('https://me.github.io/hs-tracker/app.js'));
   assert.equal(sw.calls.fetch, 0, 'cache-first 命中時不該發 fetch');
   assert.ok(res, '要拿到殼檔');
-  assert.match(res.body, /^pre-.*\/js\/db\.js$/, `快取命中的应是解析後的絕對 URL，實得：${res.body}`);
+  assert.match(res.body, /^pre-.*\/app\.js$/, `快取命中的应是解析後的絕對 URL，實得：${res.body}`);
 });
 
 test('GAS 請求完全不攔截：POST 必須放行（否則同步錯誤會被快取吞掉，todo 1.9）', async () => {

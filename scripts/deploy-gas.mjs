@@ -22,6 +22,8 @@ import { join } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 const GAS = join(ROOT, 'gas');
+const GAS_DIST = join(GAS, 'dist');            // clasp 的 rootDir：源碼是 gas/src/*.ts，雲端只吃打包產物
+const BOOTSTRAP = join(GAS_DIST, 'Bootstrap.gs');  // 一次性通道檔（用畢即刪；放 dist 才會被 push）
 const OUT = join(ROOT, '.deploy');
 const AUTH = [process.env.clasp_config_auth, process.env.CLASP_AUTH, '/home/user/.cache/clasp/.clasprc.json', '/tmp/clasp/.clasprc.json']
   .find((p) => p && existsSync(p)) || '/home/user/.cache/clasp/.clasprc.json';
@@ -90,7 +92,7 @@ async function postJson(execUrl, body) {
 }
 
 const readLocalToken = () => {
-  const p = join(GAS, 'Bootstrap.gs');
+  const p = BOOTSTRAP;
   if (!existsSync(p)) return null;
   const m = readFileSync(p, 'utf8').match(/SETUP_TOKEN = "([^"]+)"/);
   return m ? m[1] : null;
@@ -223,12 +225,12 @@ async function main() {
     [
       `clasp show-authorized-user（憑證：${AUTH}）`,
       `clasp create-script --title "${TITLE}"（在 gas/ 內執行；已有 .clasp.json 就沿用）`,
-      '寫入 gas/Bootstrap.gs（一次性 SETUP_TOKEN；已 gitignore、不進 public repo）',
+      '寫入 gas/dist/Bootstrap.gs（一次性 SETUP_TOKEN；gas/dist 已 gitignore、不進 public repo）',
       'clasp push --force（並驗證輸出，避免「Skipping push.」空推）',
       'clasp create-deployment → 匿名探針（403 時停在編輯器那一步，之後 --resume）',
       'action=bootstrap：密鑰由本腳本產生後送過去（回應被吃掉也能復原），再用 pull 覆核',
       '必要時 action=setup 補建 Changes/Backups/Meta 工作表',
-      '刪除 gas/Bootstrap.gs 再 push --force（關閉設定通道），最後驗證 bootstrap 已被拒',
+      '刪除 gas/dist/Bootstrap.gs → 重新 gas:build → push → content API 移除雲端舊檔 → 發新版本，最後驗證 bootstrap 已被拒',
       `寫 .deploy/gas.json（exec URL + 密鑰；此目錄已 gitignore）`,
     ].forEach((l) => log('  · ' + l));
     log('\n反悔：node scripts/deploy-gas.mjs --yes --destroy');
@@ -246,14 +248,15 @@ async function main() {
     log('→ 刪除 Apps Script 專案 ' + cfg.scriptId);
     log('  ' + clasp(['delete-script', cfg.scriptId, '--force']).trim());
     rmSync(join(GAS, '.clasp.json'), { force: true });
-    rmSync(join(GAS, 'Bootstrap.gs'), { force: true });
+    rmSync(BOOTSTRAP, { force: true });
     rmSync(join(OUT, 'gas.json'), { force: true });
     log('✓ 已刪除（Drive 裡殘留的「HS Tracker …」工作表請手動移除）');
     return;
   }
 
   const token = readLocalToken() || randomBytes(18).toString('base64url');
-  writeFileSync(join(GAS, 'Bootstrap.gs'), `// 一次性安裝用；部署完成即被刪除，且不進 git、不進 public repo\nconst SETUP_TOKEN = ${JSON.stringify(token)};\n`);
+  mkdirSync(GAS_DIST, { recursive: true });
+  writeFileSync(BOOTSTRAP, `// 一次性安裝用；部署完成即被刪除，且不進 git、不進 public repo\n// 源碼是 gas/src/*.ts，雲端只吃 gas/dist/Code.gs，所以這個檔放 dist（clasp rootDir）\nconst SETUP_TOKEN = ${JSON.stringify(token)};\n`);
   const secret = randomBytes(32).toString('hex');
 
   let cfg = readClaspJson();
@@ -267,7 +270,9 @@ async function main() {
     log('→ 沿用既有專案 ' + cfg.scriptId);
   }
 
-  log('→ clasp push --force（含 Bootstrap.gs）');
+  log('→ npm run gas:build（gas/src/*.ts → gas/dist/Code.gs）');
+  run('npm', ['run', 'gas:build', '--silent'], { cwd: ROOT });
+  log('→ clasp push --force（推 gas/dist：Code.gs + appsscript.json' + (existsSync(BOOTSTRAP) ? ' + Bootstrap.gs' : '') + '）');
   log('  ' + push());
 
   log('→ 建立／更新部署');
@@ -307,8 +312,9 @@ async function main() {
     log('   ' + JSON.stringify(st.json ?? st.text.slice(0, 120)));
   }
 
-  log('→ 關閉設定通道（刪本機 Bootstrap.gs → push → 用 content API 真的移除雲端那份 → 發新版本）');
-  rmSync(join(GAS, 'Bootstrap.gs'), { force: true });
+  log('→ 關閉設定通道（刪 gas/dist/Bootstrap.gs → 重建 → content API 移除雲端那份 → 發新版本）');
+  rmSync(BOOTSTRAP, { force: true });
+  run('npm', ['run', 'gas:build', '--silent'], { cwd: ROOT });   // 重BUILD 會把 appsscript.json 再拷一次，且 dist 內不會再有通道檔
   log('  ' + push());
   const del = await deleteCloudFiles(cfg.scriptId, ['Bootstrap']);
   log('  雲端已移除：' + (del.removed.join(', ') || '（本來就沒有）') + `，剩 ${del.total} 檔`);

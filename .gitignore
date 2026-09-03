@@ -12,3 +12,6 @@ gas/*.js
 .deploy/
 .github/token
 *.token
+build/
+gas/dist/
+# TS+Rollup 產物（雲端只推 gas/dist，裡面偶爾有部署用的 Bootstrap.gs）

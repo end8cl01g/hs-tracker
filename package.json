@@ -5,18 +5,31 @@
   "type": "module",
   "description": "Press to Handstand Tracker — 離線優先 PWA（sql.js + GitHub Pages + GAS Proxy）",
   "scripts": {
-    "pretest": "node scripts/deps.mjs && node scripts/build.mjs",
+    "pretest": "node scripts/deps.mjs && npm run gas:build && npm run build && npm run ts:loose",
     "test": "node --test tests/",
     "check": "node scripts/check.mjs",
-    "build": "node scripts/build.mjs",
+    "build": "rollup -c && node scripts/build.mjs",
     "size": "node scripts/build.mjs --size-only",
     "serve": "node scripts/serve.mjs",
     "ship": "bash scripts/ship.sh",
     "preview": "node scripts/preview.mjs",
     "hooks": "chmod +x .githooks/* && git config core.hooksPath .githooks && echo \"hooks: ok (.githooks, 已設可執行位)\"",
-    "verify:gas": "node scripts/gas-verify.mjs"
+    "verify:gas": "node scripts/gas-verify.mjs",
+    "bundle": "rollup -c",
+    "gas:build": "tsc -p gas/tsconfig.json --noEmit && rollup -c rollup.gas.config.mjs",
+    "gas:push": "npm run gas:build && node scripts/deploy-gas.mjs --yes",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.sw.json && tsc --noEmit -p gas/tsconfig.json",
+    "dev": "rollup -c -w",
+    "ts:loose": "tsc -p tsconfig.json --outDir build/ts --noEmit false --module commonjs --moduleResolution node10"
   },
   "devDependencies": {
-    "sql.js": "1.14.2"
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "@types/google-apps-script": "^2.0.12",
+    "rollup": "^4.63.1",
+    "sql.js": "1.14.2",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.3"
   }
 }

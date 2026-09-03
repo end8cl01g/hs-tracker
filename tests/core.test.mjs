@@ -10,7 +10,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ctx = { console, JSON, Date, Math, Number, String, Object, Array, Set, Map, parseInt, Infinity, NaN };
 vm.createContext(ctx);
 for (const f of ['dates.js', 'game-core.js']) {
-  vm.runInContext(readFileSync(join(ROOT, 'js', f), 'utf8'), ctx, { filename: f });
+  vm.runInContext(readFileSync(join(ROOT, 'build', 'ts', f), 'utf8'), ctx, { filename: f });
 }
 const D = ctx.DateUtils, G = ctx.GameCore;
 // vm context 的物件屬於另一個 realm，原型與 host 不同 → assert/strict 會誤判，先拍平再比

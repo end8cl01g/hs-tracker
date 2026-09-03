@@ -1,4 +1,4 @@
-// js/db.js — sql.js(WASM) + IndexedDB 二進位持久化
+// src/db.ts — sql.js(WASM) + IndexedDB 二進位持久化
 // 對規格（gists/handstand-prompt/Prompt.md L721-900）的四個修正：
 //  1. todo 1.2  sql.js 自架於 vendor/（原規格打 cdnjs 1.10.2 → 首次離線必然白卡；npm latest 1.14.2）
 //  2. todo 1.3  PRAGMA user_version 遷移（原規格只在「無舊資料庫」時建表 → 新增欄位會讓老使用者直接開不起來）
@@ -20,25 +20,25 @@
 
     open() {
       if (!this.supported()) return Promise.resolve(null);   // node 單測環境
-      return new Promise((resolve, reject) => {
+      return new Promise<any>((resolve, reject) => {
         const req = indexedDB.open(IDB_NAME, 1);
-        req.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(IDB_STORE)) e.target.result.createObjectStore(IDB_STORE); };
-        req.onsuccess = (e) => { this.db = e.target.result; resolve(this.db); };
-        req.onerror = (e) => reject(e.target.error);
+        req.onupgradeneeded = (e) => { if (!(e.target as any).result.objectStoreNames.contains(IDB_STORE)) (e.target as any).result.createObjectStore(IDB_STORE); };
+        req.onsuccess = (e) => { this.db = (e.target as any).result; resolve(this.db); };
+        req.onerror = (e) => reject((e.target as any).error);
       });
     },
     _tx(mode) { return this.db.transaction(IDB_STORE, mode).objectStore(IDB_STORE); },
     get(key) {
       if (!this.db) return Promise.resolve(undefined);
-      return new Promise((res, rej) => { const r = this._tx('readonly').get(key); r.onsuccess = () => res(r.result); r.onerror = (e) => rej(e.target.error); });
+      return new Promise<any>((res, rej) => { const r = this._tx('readonly').get(key); r.onsuccess = () => res(r.result); r.onerror = (e) => rej((e.target as any).error); });
     },
     set(key, value) {
       if (!this.db) return Promise.resolve();
-      return new Promise((res, rej) => { const r = this._tx('readwrite').put(value, key); r.onsuccess = () => res(); r.onerror = (e) => rej(e.target.error); });
+      return new Promise<void>((res, rej) => { const r = this._tx('readwrite').put(value, key); r.onsuccess = () => res(); r.onerror = (e) => rej((e.target as any).error); });
     },
     delete(key) {
       if (!this.db) return Promise.resolve();
-      return new Promise((res, rej) => { const r = this._tx('readwrite').delete(key); r.onsuccess = () => res(); r.onerror = (e) => rej(e.target.error); });
+      return new Promise<void>((res, rej) => { const r = this._tx('readwrite').delete(key); r.onsuccess = () => res(); r.onerror = (e) => rej((e.target as any).error); });
     },
   };
 
@@ -80,7 +80,7 @@
     db: null, SQL: null, saveTimer: null, dirty: false, version: 0,
 
     /** @param {{SQL?:object}} [inject] node 測試可注入 sql.js；瀏覽器走 vendor/ 自架 */
-    async init(inject = {}) {
+    async init(inject: any = {}) {
       await IDBManager.open();
       this.SQL = inject.SQL || await loadSqlJs();
       let binary = null;
@@ -197,7 +197,6 @@
   }
 
   const DbExports = { DBManager, IDBManager, DB_VERSION, IDB_KEY, MIGRATIONS };
-  if (typeof module !== 'undefined' && module.exports) module.exports = DbExports;
   global.DBManager = DBManager;
   global.IDBManager = IDBManager;
 })(typeof window !== 'undefined' ? window : globalThis);

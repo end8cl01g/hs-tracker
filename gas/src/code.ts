@@ -28,7 +28,7 @@ function handle_(e) {
   // （scripts/deploy-gas.mjs 會寫入、用畢即刪並重新 push，把這條路關掉）
   if (action === 'bootstrap') {
     // 只有 SETUP_TOKEN（存在於 gas/Bootstrap.gs，部署完即刪除）能過；通過後才談 force/覆蓋
-    const out = bootstrapWithToken_(req.setup_token, { secret: req.secret, force: !!req.force, hadSecret: !!secret });
+    const out: Record<string, any> = bootstrapWithToken_(req.setup_token, { secret: req.secret, force: !!req.force, hadSecret: !!secret });
     out.server_ts = nowISO_();
     out.ms = Date.now() - t0;
     return jsonOut_(out);

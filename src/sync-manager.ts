@@ -1,4 +1,4 @@
-// js/sync-manager.js — 本地 ↔ 雲端（GAS）雙向同步
+// src/sync-manager.ts — 本地 ↔ 雲端（GAS）雙向同步
 // 與原規格最大的差別：錯誤不再被吞掉（todo 1.9）。
 // 「未設定 URL」= disabled（介面顯示「未啟用雲端」），不是「已同步」。
 (function (global) {
@@ -20,8 +20,8 @@
     },
 
     async refreshPending() {
-      const rows = await global.DataLayer.getUnsyncedRows();
-      const pending = Object.values(rows).reduce((n, r) => n + r.length, 0);
+      const rows: any = await global.DataLayer.getUnsyncedRows();
+      const pending = Object.values<any>(rows).reduce((n: number, r) => n + r.length, 0);
       this._set({ pending });
       return pending;
     },
@@ -39,9 +39,9 @@
     /** 推一批；回傳「是否還有得推」。整批被拒（零進度）時也停，別在原地打轉。 */
     async _pushOnce(report) {
       const unsynced = await global.DataLayer.getUnsyncedRows();
-      const batch = {};
+      const batch: any = {};
       let total = 0, remaining = 0;
-      for (const [tbl, rows] of Object.entries(unsynced)) {
+      for (const [tbl, rows] of Object.entries<any>(unsynced)) {
         if (!rows.length) continue;
         batch[tbl] = rows.slice(0, BATCH_ROWS);
         total += batch[tbl].length;
@@ -53,8 +53,8 @@
       for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
         report.attempts = Math.max(report.attempts || 0, attempt + 1);
         try {
-          const ack = await global.GASProxy.call('push', { tables: batch });
-          for (const [tbl, res] of Object.entries((ack && ack.acked) || {})) {
+          const ack: any = await global.GASProxy.call('push', { tables: batch });
+          for (const [tbl, res] of Object.entries<any>((ack && ack.acked) || {})) {
             const ids = (res && res.ids) || batch[tbl].map((r) => r[global.DataLayer.TABLES[tbl].pk]);
             await global.DataLayer.markSynced(tbl, ids);
             report.pushed += ids.length;
@@ -72,14 +72,14 @@
           if (attempt === RETRY_DELAYS.length) break;
           const wait = RETRY_DELAYS[attempt];
           this._set({ status: 'retrying', lastError: e.message });
-          await new Promise((r) => setTimeout(r, wait));
+          await new Promise<any>((r) => setTimeout(r, wait));
         }
       }
       throw lastErr;
     },
 
     /** 一輪完整同步：先 pull（遠端較新者覆蓋本地）再 push。回傳彙報。 */
-    async fullSync(opts = {}) {
+    async fullSync(opts: any = {}) {
       if (this._running) return { skipped: 'already-running' };
       if (!(await global.GASProxy.isEnabled())) {
         this._set({ status: 'disabled', disabled: true, lastError: null });
@@ -87,13 +87,13 @@
       }
       this._running = true;
       this._set({ status: 'syncing', disabled: false, lastError: null });
-      const report = { pulled: 0, pushed: 0, conflicts: 0, tables: {}, attempts: 0 };
+      const report: any = { pulled: 0, pushed: 0, conflicts: 0, tables: {}, attempts: 0 };
       try {
         // ---- pull ----
         const since = await global.DataLayer.getSetting('last_pull_at');
-        const remote = await global.GASProxy.call('pull', { since: since || null });
+        const remote: any = await global.GASProxy.call('pull', { since: since || null });
         if (remote && remote.rows) {
-          for (const [tbl, rows] of Object.entries(remote.rows)) {
+          for (const [tbl, rows] of Object.entries<any>(remote.rows)) {
             for (const r of rows || []) {
               if (!global.DataLayer.TABLES[tbl]) continue;
               const res = await global.DataLayer.upsertWithConflictResolution(tbl, r);
@@ -154,7 +154,5 @@
       await global.DBManager.flushNow();
     },
   };
-
-  if (typeof module !== 'undefined' && module.exports) module.exports = { SyncManager, BATCH_ROWS, RETRY_DELAYS };
   global.SyncManager = SyncManager;
 })(typeof window !== 'undefined' ? window : globalThis);

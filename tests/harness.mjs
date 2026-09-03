@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 
 const require = createRequire(import.meta.url);
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+// tsc 逐檔輸出的 JS（不是 rollup bundle）：測試要「只載入这几個模組」，用 bundle 會把 app.ts 的啟動副作用也拖進來
 const FILES = ['dates.js', 'game-core.js', 'db.js', 'data-layer.js', 'gas-proxy.js', 'sync-manager.js', 'game-engine.js'];
 
 const microtask = (fn) => Promise.resolve().then(fn);
@@ -86,7 +87,7 @@ export async function makeApp({ fetchImpl, seedDeviceId } = {}) {
   };
   ctx.window = ctx; ctx.globalThis = ctx; ctx.self = ctx;
   vm.createContext(ctx);
-  for (const f of FILES) vm.runInContext(readFileSync(join(ROOT, 'js', f), 'utf8'), ctx, { filename: 'js/' + f });
+  for (const f of FILES) vm.runInContext(readFileSync(join(ROOT, 'build', 'ts', f), 'utf8'), ctx, { filename: 'build/ts/' + f });
 
   const SQL = await initSqlJs({ locateFile: (file) => join(ROOT, 'node_modules', 'sql.js', 'dist', file) });
   await ctx.DBManager.init({ SQL });

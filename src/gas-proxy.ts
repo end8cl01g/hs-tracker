@@ -1,4 +1,4 @@
-// js/gas-proxy.js — GAS Web App HTTP 客戶端（語意在 Part 1 缺件下重寫）
+// src/gas-proxy.ts — GAS Web App HTTP 客戶端（語意在 Part 1 缺件下重寫）
 // 三個必須遵守的 GAS 事實（本輪查證）：
 //  1. ContentService 會 302 到 script.googleusercontent.com → redirect 必須 follow
 //  2. Content-Type: application/json 會觸發 preflight，GAS 不處理 OPTIONS → 一律用 text/plain;charset=utf-8
@@ -10,7 +10,8 @@
   const ACTIONS = { PUSH: 'push', PULL: 'pull', PING: 'ping', CONFIG: 'config' };
 
   class GasError extends Error {
-    constructor(kind, message, extra = {}) { super(message); this.name = 'GasError'; this.kind = kind; Object.assign(this, extra); }
+    kind: string;
+    constructor(kind: string, message: string, extra: any = {}) { super(message); this.name = 'GasError'; this.kind = kind; Object.assign(this, extra); }
   }
 
   const GASProxy = {
@@ -27,7 +28,7 @@
 
     isEnabled() { return GASProxy._cfg().then((c) => !!c.url); },
 
-    async call(action, payload = {}, opts = {}) {
+    async call(action, payload: any = {}, opts: any = {}) {
       const { url, secret } = opts.cfg || await GASProxy._cfg();
       if (!url) throw new GasError('no-url', '尚未設定 GAS Web App URL');
 
@@ -41,7 +42,7 @@
 
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs || GASProxy.timeoutMs);
-      const doFetch = opts.fetchImpl || ((...a) => fetch(...a));
+      const doFetch = opts.fetchImpl || ((...a: any[]) => (fetch as any)(...a));
       let res;
       try {
         res = await doFetch(url, {
@@ -84,8 +85,6 @@
       return id;
     },
   };
-
-  if (typeof module !== 'undefined' && module.exports) module.exports = { GASProxy, GasError };
   global.GASProxy = GASProxy;
   global.GasError = GasError;
 })(typeof window !== 'undefined' ? window : globalThis);

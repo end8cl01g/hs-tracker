@@ -1,4 +1,4 @@
-// js/game-core.js — 純邏輯：等級 / XP / streak / 今日菜單 / 徽章 / 技能解鎖
+// src/game-core.ts — 純邏輯：等級 / XP / streak / 今日菜單 / 徽章 / 技能解鎖
 // 沒有 DOM、沒有 SQL，可在 node 單測。規格缺陷 todo 1.6、1.7 在此落地：
 // 「今天練什麼」只有一個真相來源 = 本機星期（weekday），不再用 daysSinceStart % 7。
 (function (global) {
@@ -58,11 +58,11 @@
 
   /**
    * 今天該練什麼。單一真相：週日=0 … 週六=6 對應 plan.restDays 或 dayKey。
-   * @param workout  data/workout.json
+   * @param workout  data/workout.tson
    * @param phase    0..4
    * @param opts     {todayISO, restDays:[0,6], dayOrder:['mon',...]}
    */
-  function todayPlan(workout, phase, opts = {}) {
+  function todayPlan(workout, phase, opts: any = {}) {
     const restDays = (opts.restDays == null ? [0, 6] : opts.restDays).map(Number);
     const today = opts.todayISO || D.todayISO();
     const wd = D.weekdayOf(today);
@@ -88,7 +88,7 @@
   }
 
   /** 技能可否解鎖：需 dependencies 全解鎖 + 前一段 phase 完成度 */
-  function canUnlock(node, statuses, opts = {}) {
+  function canUnlock(node, statuses, opts: any = {}) {
     if (!node) return { ok: false, why: 'no-node' };
     if (statuses && statuses[node.id] && statuses[node.id].unlocked) return { ok: false, why: 'already' };
     const deps = node.requires || [];
@@ -100,7 +100,7 @@
   }
 
   /** 徽章判定（純函式，badge defs + 統計 -> 拿到的 id 清單） */
-  function earnedBadges(defs, stats, already = {}) {
+  function earnedBadges(defs, stats, already: any = {}) {
     const out = [];
     for (const b of defs || []) {
       if (already[b.id]) continue;
@@ -143,7 +143,5 @@
   const GameCore = {
     LEVELS, levelFor, xpForExercises, streaks, todayPlan, canUnlock, earnedBadges, weeklyStats,
   };
-
-  if (typeof module !== 'undefined' && module.exports) module.exports = GameCore;
   global.GameCore = GameCore;
 })(typeof window !== 'undefined' ? window : globalThis);

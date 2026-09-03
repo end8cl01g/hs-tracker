@@ -1,7 +1,7 @@
-// js/animations.js — 全部走 CSS class 切換（規格要求：不用 JS 逐幀動畫，省電且不掉幀）
+// src/animations.ts — 全部走 CSS class 切換（規格要求：不用 JS 逐幀動畫，省電且不掉幀）
 (function (global) {
   'use strict';
-  const $ = (id) => document.getElementById(id);
+  const $ = (id: string): El => document.getElementById(id) as unknown as El;
 
   const Animations = {
     /** 由勾選框觸發的 +XP 飄字 */
