@@ -57,7 +57,8 @@ check('錯密鑰被拒', badSecret.json?.ok === false && badSecret.json?.error =
 const failed = results.filter((r) => !r.pass);
 console.log(`\n${failed.length ? '✗ ' + failed.length + ' 項不合格' : '✓ 全部通過'}（端點：${st.execUrl.slice(0, 58)}…）`);
 if (failed.some((f) => f.name === '雲端表格就緒（setup）')) {
-  console.log('  → 多半是 Apps Script 的 scope 尚未核准：在編輯器 Run 一次 doctor_ 並 Allow；');
+  console.log('  → 多半是 Apps Script 的 scope 尚未核准：在編輯器 ▸ 函式選 setupDatabase ▸ Run ▸ Allow');
+  console.log('    （名字結尾帶底線的函式是 private，不會出現在選單裡，別再找 doctor_）；');
   console.log('    並確認雲端 appsscript.json 已不含 oauthScopes（寫死就會蓋掉自動推斷）。');
 }
 process.exit(failed.length ? 1 : 0);

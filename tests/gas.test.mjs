@@ -124,10 +124,11 @@ test('雲端有「人能按」的 public 入口（底線結尾的函式不會出
 test('部署腳本「叫人在編輯器按的函式」必須真的存在於產物而且是 public', () => {
   // 這一輪踩的坑：腳本寫「Run ▸ 函式選 doctor_」，但底線結尾的函式不會出現在 Run 下拉選單，
   // 使用者照著做只會看到 doGet/doPost → 卡死在一個不存在的按鈕上。指令也要被驗。
-  const script = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  const script = ['deploy-gas.mjs', 'gas-verify.mjs'].map((f) => readFileSync(join(ROOT, 'scripts', f), 'utf8')).join('\n');
   const bundle = existsSync(BUNDLE) ? readFileSync(BUNDLE, 'utf8') : '';
-  const named = [...script.matchAll(/函式選\s+([A-Za-z_$][\w$]*)/g)].map((m) => m[1]);
-  assert.ok(named.length >= 1, '腳本沒告訴人要按哪個函式');
+  const named = [...script.matchAll(/(?:函式選|Run（執行）▸ 函式選|Run 一次)\s+`?([A-Za-z_$][\w$]*)`?/g)].map((m) => m[1]);
+  assert.ok(named.length >= 2, `腳本裡的「要按哪個函式」提示太少（${named.join(', ') || '空'}）：deploy-gas 與 gas-verify 都要給出同一個 public 入口`);
+  assert.ok(named.every((n) => n === 'setupDatabase'), '人工入口必須統一是 setupDatabase，實得：' + named.join(', '));
   for (const fn of named) {
     assert.ok(!fn.endsWith('_'), `腳本叫人按 ${fn}()——底線結尾是 private，Run 選單裡根本沒有它`);
     assert.ok(new RegExp('^function ' + fn + '\\s*\\(', 'm').test(bundle), `產物裡找不到 function ${fn}()（要先 npm run gas:build）`);
