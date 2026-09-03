@@ -110,6 +110,11 @@ label { display: block; margin: 10px 0; font-size: 14px; color: var(--muted); }
 .ex-main { display: grid; gap: 2px; min-width: 0; }
 .ex-name { font-weight: 600; }
 .ex-detail { font-size: 11px; color: var(--muted); }
+.ex-note { color: #f0a3a3; }                  /* ⚠️ 安全提示要跳出來，不能跟處方同灰 */
+.ex-reg { color: var(--muted); font-style: italic; }
+.gate { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.gate h4 { margin: 0 0 4px; font-size: 12px; color: var(--muted); }
+.gate ul { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.7; }
 .ex-kind { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; }
 .ex-xp { font-size: 12px; color: var(--warn); font-variant-numeric: tabular-nums; }
 .ex-row.done { border-color: rgba(78, 205, 196, .5); background: rgba(78, 205, 196, .07); }

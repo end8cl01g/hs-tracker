@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "updated_at": "2026-09-02T21:08:55.690Z",
+  "version": 3,
+  "updated_at": "2026-09-03T15:08:52.592Z",
   "badges": [
     {
       "id": "first_log",
@@ -10,6 +10,33 @@
       "op": ">=",
       "value": 1,
       "desc": "完成第一次打卡"
+    },
+    {
+      "id": "crow_return",
+      "name": "烏鴉回歸",
+      "icon": "🔓",
+      "metric": "total_sessions",
+      "op": ">=",
+      "value": 8,
+      "desc": "第 2 週自查：烏鴉式穩定 10 秒（Phase 0 里程碑）"
+    },
+    {
+      "id": "wall_return",
+      "name": "牆面回歸",
+      "icon": "🧱",
+      "metric": "total_sessions",
+      "op": ">=",
+      "value": 16,
+      "desc": "第 4 週自查：面牆倒立 45 秒 × 2 組（Phase 0 里程碑）"
+    },
+    {
+      "id": "rust_cleared",
+      "name": "除鏽完成",
+      "icon": "🔧",
+      "metric": "total_sessions",
+      "op": ">=",
+      "value": 24,
+      "desc": "第 6 週：烏鴉 30 秒 + 靠牆 60 秒 + L-sit 15 秒 + Pike PU 3×10"
     },
     {
       "id": "streak7",
@@ -39,13 +66,13 @@
       "desc": "累計 30 次"
     },
     {
-      "id": "sessions100",
-      "name": "百次传说",
-      "icon": "💯",
+      "id": "sessions150",
+      "name": "半年功課",
+      "icon": "📅",
       "metric": "total_sessions",
       "op": ">=",
-      "value": 100,
-      "desc": "累計 100 次"
+      "value": 150,
+      "desc": "累計 150 次（52 週 × 約 4 天的量）"
     },
     {
       "id": "xp1000",
@@ -54,52 +81,52 @@
       "metric": "total_xp",
       "op": ">=",
       "value": 1000,
-      "desc": "XP 達 1000"
+      "desc": "累計 1000 XP"
     },
     {
       "id": "xp5000",
       "name": "五千點",
-      "icon": "🌕",
+      "icon": "💥",
       "metric": "total_xp",
       "op": ">=",
       "value": 5000,
-      "desc": "XP 達 5000"
+      "desc": "累計 5000 XP"
     },
     {
       "id": "xp12000",
       "name": "萬二俱樂",
-      "icon": "🌟",
+      "icon": "🌋",
       "metric": "total_xp",
       "op": ">=",
       "value": 12000,
-      "desc": "XP 達 12000"
+      "desc": "累計 12000 XP"
     },
     {
       "id": "tree12",
       "name": "技能樹初開",
-      "icon": "🌳",
+      "icon": "🌿",
       "metric": "skills_unlocked",
       "op": ">=",
       "value": 12,
       "desc": "解鎖 12 個節點"
     },
     {
-      "id": "tree36",
-      "name": "全樹點亮",
-      "icon": "✨",
+      "id": "tree24",
+      "name": "半棵樹",
+      "icon": "🌳",
       "metric": "skills_unlocked",
       "op": ">=",
-      "value": 36,
-      "desc": "解鎖全部 36 節點"
+      "value": 24,
+      "desc": "解鎖 24 個節點"
     },
     {
       "id": "level5",
-      "name": "战士階",
-      "icon": "🗡️",
+      "name": "戰士階",
+      "icon": "🎖",
       "metric": "level",
       "op": ">=",
       "value": 5,
-      "desc": "等級達 Lv.5"
+      "desc": "等級 5"
     },
     {
       "id": "first_sync",
@@ -108,7 +135,7 @@
       "metric": "total_syncs",
       "op": ">=",
       "value": 1,
-      "desc": "成功同步一次"
+      "desc": "完成第一次雲端同步"
     }
   ]
 }

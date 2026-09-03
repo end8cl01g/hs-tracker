@@ -1,462 +1,441 @@
 {
-  "version": 1,
-  "updated_at": "2026-09-02T21:08:55.690Z",
+  "version": 3,
+  "updated_at": "2026-09-03T15:08:52.592Z",
   "nodes": [
     {
       "id": "wrist1",
       "branch": "wrist",
-      "branch_label": "手腕耐久",
+      "branch_label": "手腕",
       "tier": 1,
-      "name": "手腕耐久 Lv1",
+      "name": "手腕熱身與強化",
       "requires": [],
       "min_xp": 0,
       "min_streak": 0,
-      "desc": "手腕耐久 第 1 關：完成對應訓練日打卡後解鎖。"
+      "desc": "手腕：手腕熱身與強化。"
     },
     {
       "id": "wrist2",
       "branch": "wrist",
-      "branch_label": "手腕耐久",
+      "branch_label": "手腕",
       "tier": 2,
-      "name": "手腕耐久 Lv2",
+      "name": "手指撐桌推 2×15",
       "requires": [
         "wrist1"
       ],
-      "min_xp": 450,
+      "min_xp": 150,
       "min_streak": 0,
-      "desc": "手腕耐久 第 2 關：完成對應訓練日打卡後解鎖。"
+      "desc": "手腕：手指撐桌推 2×15。"
     },
     {
       "id": "wrist3",
       "branch": "wrist",
-      "branch_label": "手腕耐久",
+      "branch_label": "手腕",
       "tier": 3,
-      "name": "手腕耐久 Lv3",
+      "name": "撐地前後搖擺 60 秒",
       "requires": [
         "wrist2"
       ],
-      "min_xp": 900,
+      "min_xp": 350,
       "min_streak": 0,
-      "desc": "手腕耐久 第 3 關：完成對應訓練日打卡後解鎖。"
+      "desc": "手腕：撐地前後搖擺 60 秒。"
     },
     {
-      "id": "wrist4",
-      "branch": "wrist",
-      "branch_label": "手腕耐久",
-      "tier": 4,
-      "name": "手腕耐久 Lv4",
-      "requires": [
-        "wrist3"
-      ],
-      "min_xp": 1350,
-      "min_streak": 0,
-      "desc": "手腕耐久 第 4 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "wrist5",
-      "branch": "wrist",
-      "branch_label": "手腕耐久",
-      "tier": 5,
-      "name": "手腕耐久 Lv5",
-      "requires": [
-        "wrist4"
-      ],
-      "min_xp": 1800,
-      "min_streak": 14,
-      "desc": "手腕耐久 第 5 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "wrist6",
-      "branch": "wrist",
-      "branch_label": "手腕耐久",
-      "tier": 6,
-      "name": "手腕耐久 Lv6",
-      "requires": [
-        "wrist5"
-      ],
-      "min_xp": 2250,
-      "min_streak": 14,
-      "desc": "手腕耐久 第 6 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "line1",
-      "branch": "line",
-      "branch_label": "身體對齊",
-      "tier": 1,
-      "name": "身體對齊 Lv1",
-      "requires": [],
-      "min_xp": 0,
-      "min_streak": 0,
-      "desc": "身體對齊 第 1 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "line2",
-      "branch": "line",
-      "branch_label": "身體對齊",
+      "id": "pushup1",
+      "branch": "base",
+      "branch_label": "地基",
       "tier": 2,
-      "name": "身體對齊 Lv2",
+      "name": "伏地挺身 15",
       "requires": [
-        "line1"
+        "wrist1"
       ],
-      "min_xp": 450,
+      "min_xp": 150,
       "min_streak": 0,
-      "desc": "身體對齊 第 2 關：完成對應訓練日打卡後解鎖。"
+      "desc": "地基：伏地挺身 15。"
     },
     {
-      "id": "line3",
-      "branch": "line",
-      "branch_label": "身體對齊",
-      "tier": 3,
-      "name": "身體對齊 Lv3",
-      "requires": [
-        "line2"
-      ],
-      "min_xp": 900,
-      "min_streak": 0,
-      "desc": "身體對齊 第 3 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "line4",
-      "branch": "line",
-      "branch_label": "身體對齊",
-      "tier": 4,
-      "name": "身體對齊 Lv4",
-      "requires": [
-        "line3"
-      ],
-      "min_xp": 1350,
-      "min_streak": 0,
-      "desc": "身體對齊 第 4 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "line5",
-      "branch": "line",
-      "branch_label": "身體對齊",
-      "tier": 5,
-      "name": "身體對齊 Lv5",
-      "requires": [
-        "line4"
-      ],
-      "min_xp": 1800,
-      "min_streak": 14,
-      "desc": "身體對齊 第 5 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "line6",
-      "branch": "line",
-      "branch_label": "身體對齊",
-      "tier": 6,
-      "name": "身體對齊 Lv6",
-      "requires": [
-        "line5"
-      ],
-      "min_xp": 2250,
-      "min_streak": 14,
-      "desc": "身體對齊 第 6 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "shoulder1",
-      "branch": "shoulder",
-      "branch_label": "肩部力量",
-      "tier": 1,
-      "name": "肩部力量 Lv1",
-      "requires": [],
-      "min_xp": 0,
-      "min_streak": 0,
-      "desc": "肩部力量 第 1 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "shoulder2",
-      "branch": "shoulder",
-      "branch_label": "肩部力量",
+      "id": "plank1",
+      "branch": "base",
+      "branch_label": "地基",
       "tier": 2,
-      "name": "肩部力量 Lv2",
+      "name": "平板支撐 30 秒",
       "requires": [
-        "shoulder1"
+        "wrist1"
       ],
-      "min_xp": 450,
+      "min_xp": 150,
       "min_streak": 0,
-      "desc": "肩部力量 第 2 關：完成對應訓練日打卡後解鎖。"
+      "desc": "地基：平板支撐 30 秒。"
     },
     {
-      "id": "shoulder3",
-      "branch": "shoulder",
-      "branch_label": "肩部力量",
+      "id": "hollow1",
+      "branch": "base",
+      "branch_label": "地基",
       "tier": 3,
-      "name": "肩部力量 Lv3",
+      "name": "Hollow Body 30 秒",
       "requires": [
-        "shoulder2"
+        "plank1"
+      ],
+      "min_xp": 350,
+      "min_streak": 0,
+      "desc": "地基：Hollow Body 30 秒。"
+    },
+    {
+      "id": "pullup1",
+      "branch": "base",
+      "branch_label": "地基",
+      "tier": 4,
+      "name": "引體向上 3×5",
+      "requires": [
+        "hollow1"
+      ],
+      "min_xp": 600,
+      "min_streak": 0,
+      "desc": "地基：引體向上 3×5。"
+    },
+    {
+      "id": "pikepu1",
+      "branch": "base",
+      "branch_label": "地基",
+      "tier": 3,
+      "name": "跪姿 Pike PU 3×10",
+      "requires": [
+        "pushup1"
+      ],
+      "min_xp": 350,
+      "min_streak": 0,
+      "desc": "地基：跪姿 Pike PU 3×10。"
+    },
+    {
+      "id": "pikepu2",
+      "branch": "base",
+      "branch_label": "地基",
+      "tier": 4,
+      "name": "Pike PU 3×15",
+      "requires": [
+        "pikepu1"
+      ],
+      "min_xp": 600,
+      "min_streak": 0,
+      "desc": "地基：Pike PU 3×15。"
+    },
+    {
+      "id": "crow1",
+      "branch": "crow",
+      "branch_label": "烏鴉",
+      "tier": 3,
+      "name": "烏鴉 10 秒",
+      "requires": [
+        "wrist2"
+      ],
+      "min_xp": 350,
+      "min_streak": 0,
+      "desc": "烏鴉：烏鴉 10 秒。"
+    },
+    {
+      "id": "crow2",
+      "branch": "crow",
+      "branch_label": "烏鴉",
+      "tier": 4,
+      "name": "烏鴉 30 秒",
+      "requires": [
+        "crow1"
+      ],
+      "min_xp": 600,
+      "min_streak": 0,
+      "desc": "烏鴉：烏鴉 30 秒。"
+    },
+    {
+      "id": "crow3",
+      "branch": "crow",
+      "branch_label": "烏鴉",
+      "tier": 5,
+      "name": "烏鴉 60 秒",
+      "requires": [
+        "crow2"
       ],
       "min_xp": 900,
       "min_streak": 0,
-      "desc": "肩部力量 第 3 關：完成對應訓練日打卡後解鎖。"
+      "desc": "烏鴉：烏鴉 60 秒。"
     },
     {
-      "id": "shoulder4",
-      "branch": "shoulder",
-      "branch_label": "肩部力量",
+      "id": "lsit1",
+      "branch": "lsit",
+      "branch_label": "L-sit／壓縮",
       "tier": 4,
-      "name": "肩部力量 Lv4",
+      "name": "屈膝 L-sit",
       "requires": [
-        "shoulder3"
+        "hollow1"
       ],
-      "min_xp": 1350,
+      "min_xp": 600,
       "min_streak": 0,
-      "desc": "肩部力量 第 4 關：完成對應訓練日打卡後解鎖。"
+      "desc": "L-sit／壓縮：屈膝 L-sit。"
     },
     {
-      "id": "shoulder5",
-      "branch": "shoulder",
-      "branch_label": "肩部力量",
+      "id": "lsit2",
+      "branch": "lsit",
+      "branch_label": "L-sit／壓縮",
       "tier": 5,
-      "name": "肩部力量 Lv5",
+      "name": "L-sit 15 秒",
       "requires": [
-        "shoulder4"
-      ],
-      "min_xp": 1800,
-      "min_streak": 14,
-      "desc": "肩部力量 第 5 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "shoulder6",
-      "branch": "shoulder",
-      "branch_label": "肩部力量",
-      "tier": 6,
-      "name": "肩部力量 Lv6",
-      "requires": [
-        "shoulder5"
-      ],
-      "min_xp": 2250,
-      "min_streak": 14,
-      "desc": "肩部力量 第 6 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "balance1",
-      "branch": "balance",
-      "branch_label": "自由平衡",
-      "tier": 1,
-      "name": "自由平衡 Lv1",
-      "requires": [],
-      "min_xp": 0,
-      "min_streak": 0,
-      "desc": "自由平衡 第 1 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "balance2",
-      "branch": "balance",
-      "branch_label": "自由平衡",
-      "tier": 2,
-      "name": "自由平衡 Lv2",
-      "requires": [
-        "balance1"
-      ],
-      "min_xp": 450,
-      "min_streak": 0,
-      "desc": "自由平衡 第 2 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "balance3",
-      "branch": "balance",
-      "branch_label": "自由平衡",
-      "tier": 3,
-      "name": "自由平衡 Lv3",
-      "requires": [
-        "balance2"
+        "lsit1"
       ],
       "min_xp": 900,
       "min_streak": 0,
-      "desc": "自由平衡 第 3 關：完成對應訓練日打卡後解鎖。"
+      "desc": "L-sit／壓縮：L-sit 15 秒。"
     },
     {
-      "id": "balance4",
-      "branch": "balance",
-      "branch_label": "自由平衡",
-      "tier": 4,
-      "name": "自由平衡 Lv4",
-      "requires": [
-        "balance3"
-      ],
-      "min_xp": 1350,
-      "min_streak": 0,
-      "desc": "自由平衡 第 4 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "balance5",
-      "branch": "balance",
-      "branch_label": "自由平衡",
-      "tier": 5,
-      "name": "自由平衡 Lv5",
-      "requires": [
-        "balance4"
-      ],
-      "min_xp": 1800,
-      "min_streak": 14,
-      "desc": "自由平衡 第 5 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "balance6",
-      "branch": "balance",
-      "branch_label": "自由平衡",
+      "id": "lsit3",
+      "branch": "lsit",
+      "branch_label": "L-sit／壓縮",
       "tier": 6,
-      "name": "自由平衡 Lv6",
+      "name": "L-sit 30 秒",
       "requires": [
-        "balance5"
+        "lsit2"
       ],
-      "min_xp": 2250,
-      "min_streak": 14,
-      "desc": "自由平衡 第 6 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "fear1",
-      "branch": "fear",
-      "branch_label": "落地與膽量",
-      "tier": 1,
-      "name": "落地與膽量 Lv1",
-      "requires": [],
-      "min_xp": 0,
+      "min_xp": 1250,
       "min_streak": 0,
-      "desc": "落地與膽量 第 1 關：完成對應訓練日打卡後解鎖。"
+      "desc": "L-sit／壓縮：L-sit 30 秒。"
     },
     {
-      "id": "fear2",
-      "branch": "fear",
-      "branch_label": "落地與膽量",
-      "tier": 2,
-      "name": "落地與膽量 Lv2",
+      "id": "wall1",
+      "branch": "wall",
+      "branch_label": "牆面倒立",
+      "tier": 4,
+      "name": "面牆倒立 30 秒",
       "requires": [
-        "fear1"
+        "wrist2",
+        "pikepu1"
       ],
-      "min_xp": 450,
+      "min_xp": 600,
       "min_streak": 0,
-      "desc": "落地與膽量 第 2 關：完成對應訓練日打卡後解鎖。"
+      "desc": "牆面倒立：面牆倒立 30 秒。"
     },
     {
-      "id": "fear3",
-      "branch": "fear",
-      "branch_label": "落地與膽量",
-      "tier": 3,
-      "name": "落地與膽量 Lv3",
+      "id": "wall2",
+      "branch": "wall",
+      "branch_label": "牆面倒立",
+      "tier": 5,
+      "name": "面牆倒立 60 秒",
       "requires": [
-        "fear2"
+        "wall1"
       ],
       "min_xp": 900,
       "min_streak": 0,
-      "desc": "落地與膽量 第 3 關：完成對應訓練日打卡後解鎖。"
+      "desc": "牆面倒立：面牆倒立 60 秒。"
     },
     {
-      "id": "fear4",
-      "branch": "fear",
-      "branch_label": "落地與膽量",
-      "tier": 4,
-      "name": "落地與膽量 Lv4",
-      "requires": [
-        "fear3"
-      ],
-      "min_xp": 1350,
-      "min_streak": 0,
-      "desc": "落地與膽量 第 4 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "fear5",
-      "branch": "fear",
-      "branch_label": "落地與膽量",
-      "tier": 5,
-      "name": "落地與膽量 Lv5",
-      "requires": [
-        "fear4"
-      ],
-      "min_xp": 1800,
-      "min_streak": 14,
-      "desc": "落地與膽量 第 5 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "fear6",
-      "branch": "fear",
-      "branch_label": "落地與膽量",
+      "id": "kick1",
+      "branch": "wall",
+      "branch_label": "牆面倒立",
       "tier": 6,
-      "name": "落地與膽量 Lv6",
+      "name": "背牆踢上",
       "requires": [
-        "fear5"
+        "wall2"
       ],
-      "min_xp": 2250,
-      "min_streak": 14,
-      "desc": "落地與膽量 第 6 關：完成對應訓練日打卡後解鎖。"
-    },
-    {
-      "id": "core1",
-      "branch": "core",
-      "branch_label": "核心抗旋",
-      "tier": 1,
-      "name": "核心抗旋 Lv1",
-      "requires": [],
-      "min_xp": 0,
+      "min_xp": 1250,
       "min_streak": 0,
-      "desc": "核心抗旋 第 1 關：完成對應訓練日打卡後解鎖。"
+      "desc": "牆面倒立：背牆踢上。"
     },
     {
-      "id": "core2",
-      "branch": "core",
-      "branch_label": "核心抗旋",
-      "tier": 2,
-      "name": "核心抗旋 Lv2",
+      "id": "wallfree1",
+      "branch": "wall",
+      "branch_label": "牆面倒立",
+      "tier": 7,
+      "name": "離牆平衡 5 秒",
       "requires": [
-        "core1"
+        "kick1"
       ],
-      "min_xp": 450,
+      "min_xp": 1600,
       "min_streak": 0,
-      "desc": "核心抗旋 第 2 關：完成對應訓練日打卡後解鎖。"
+      "desc": "牆面倒立：離牆平衡 5 秒。"
     },
     {
-      "id": "core3",
-      "branch": "core",
-      "branch_label": "核心抗旋",
-      "tier": 3,
-      "name": "核心抗旋 Lv3",
+      "id": "hs10",
+      "branch": "balance",
+      "branch_label": "自由倒立",
+      "tier": 8,
+      "name": "自由倒立 10 秒",
       "requires": [
-        "core2"
+        "wallfree1",
+        "crow2"
       ],
-      "min_xp": 900,
+      "min_xp": 2000,
       "min_streak": 0,
-      "desc": "核心抗旋 第 3 關：完成對應訓練日打卡後解鎖。"
+      "desc": "自由倒立：自由倒立 10 秒。"
     },
     {
-      "id": "core4",
-      "branch": "core",
-      "branch_label": "核心抗旋",
-      "tier": 4,
-      "name": "核心抗旋 Lv4",
+      "id": "hs30",
+      "branch": "balance",
+      "branch_label": "自由倒立",
+      "tier": 9,
+      "name": "自由倒立 30 秒",
       "requires": [
-        "core3"
+        "hs10"
       ],
-      "min_xp": 1350,
+      "min_xp": 2400,
       "min_streak": 0,
-      "desc": "核心抗旋 第 4 關：完成對應訓練日打卡後解鎖。"
+      "desc": "自由倒立：自由倒立 30 秒。"
     },
     {
-      "id": "core5",
-      "branch": "core",
-      "branch_label": "核心抗旋",
-      "tier": 5,
-      "name": "核心抗旋 Lv5",
+      "id": "hs60",
+      "branch": "balance",
+      "branch_label": "自由倒立",
+      "tier": 10,
+      "name": "自由倒立 60 秒",
       "requires": [
-        "core4"
+        "hs30"
       ],
-      "min_xp": 1800,
-      "min_streak": 14,
-      "desc": "核心抗旋 第 5 關：完成對應訓練日打卡後解鎖。"
+      "min_xp": 2800,
+      "min_streak": 0,
+      "desc": "自由倒立：自由倒立 60 秒。"
     },
     {
-      "id": "core6",
-      "branch": "core",
-      "branch_label": "核心抗旋",
+      "id": "head1",
+      "branch": "press",
+      "branch_label": "壓上（Press）",
       "tier": 6,
-      "name": "核心抗旋 Lv6",
+      "name": "Headstand 30 秒",
       "requires": [
-        "core5"
+        "wall2",
+        "hollow1"
       ],
-      "min_xp": 2250,
-      "min_streak": 14,
-      "desc": "核心抗旋 第 6 關：完成對應訓練日打卡後解鎖。"
+      "min_xp": 1250,
+      "min_streak": 0,
+      "desc": "壓上（Press）：Headstand 30 秒。"
+    },
+    {
+      "id": "headpress",
+      "branch": "press",
+      "branch_label": "壓上（Press）",
+      "tier": 10,
+      "name": "Headstand Press",
+      "requires": [
+        "head1",
+        "hs30"
+      ],
+      "min_xp": 2800,
+      "min_streak": 0,
+      "desc": "壓上（Press）：Headstand Press。"
+    },
+    {
+      "id": "elev1",
+      "branch": "press",
+      "branch_label": "壓上（Press）",
+      "tier": 11,
+      "name": "抬高面 Straddle Press",
+      "requires": [
+        "headpress",
+        "lsit3"
+      ],
+      "min_xp": 2800,
+      "min_streak": 0,
+      "desc": "壓上（Press）：抬高面 Straddle Press。"
+    },
+    {
+      "id": "tuck1",
+      "branch": "press",
+      "branch_label": "壓上（Press）",
+      "tier": 12,
+      "name": "Tuck Press to Handstand",
+      "requires": [
+        "elev1"
+      ],
+      "min_xp": 2800,
+      "min_streak": 0,
+      "desc": "壓上（Press）：Tuck Press to Handstand。"
+    },
+    {
+      "id": "strad_neg",
+      "branch": "press",
+      "branch_label": "壓上（Press）",
+      "tier": 12,
+      "name": "Straddle Negative 5 秒",
+      "requires": [
+        "elev1"
+      ],
+      "min_xp": 2800,
+      "min_streak": 0,
+      "desc": "壓上（Press）：Straddle Negative 5 秒。"
+    },
+    {
+      "id": "pike_neg",
+      "branch": "press",
+      "branch_label": "壓上（Press）",
+      "tier": 11,
+      "name": "Pike Negative 5 秒",
+      "requires": [
+        "hs60"
+      ],
+      "min_xp": 2800,
+      "min_streak": 0,
+      "desc": "壓上（Press）：Pike Negative 5 秒。"
+    },
+    {
+      "id": "strad_press",
+      "branch": "press",
+      "branch_label": "壓上（Press）",
+      "tier": 13,
+      "name": "Straddle Press to Handstand",
+      "requires": [
+        "strad_neg",
+        "tuck1"
+      ],
+      "min_xp": 2800,
+      "min_streak": 0,
+      "desc": "壓上（Press）：Straddle Press to Handstand。"
+    },
+    {
+      "id": "full_pike",
+      "branch": "press",
+      "branch_label": "壓上（Press）",
+      "tier": 14,
+      "name": "Full Pike Press to Handstand",
+      "requires": [
+        "pike_neg",
+        "strad_press"
+      ],
+      "min_xp": 2800,
+      "min_streak": 0,
+      "desc": "壓上（Press）：Full Pike Press to Handstand。"
+    },
+    {
+      "id": "safe1",
+      "branch": "fear",
+      "branch_label": "心理與安全",
+      "tier": 4,
+      "name": "從容側翻落地",
+      "requires": [
+        "crow1"
+      ],
+      "min_xp": 600,
+      "min_streak": 0,
+      "desc": "心理與安全：從容側翻落地。"
+    },
+    {
+      "id": "safe2",
+      "branch": "fear",
+      "branch_label": "心理與安全",
+      "tier": 9,
+      "name": "無人扶持下穩定落地",
+      "requires": [
+        "safe1",
+        "hs10"
+      ],
+      "min_xp": 2400,
+      "min_streak": 0,
+      "desc": "心理與安全：無人扶持下穩定落地。"
+    },
+    {
+      "id": "safe3",
+      "branch": "fear",
+      "branch_label": "心理與安全",
+      "tier": 10,
+      "name": "疲憊時主動收工",
+      "requires": [
+        "safe2"
+      ],
+      "min_xp": 2800,
+      "min_streak": 0,
+      "desc": "心理與安全：疲憊時主動收工。"
     }
   ]
 }

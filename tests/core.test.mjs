@@ -131,6 +131,18 @@ test('data/*.json 結構與代碼假設一致', () => {
     assert.ok(!ids.has(n.id), '技能 id 重複 ' + n.id); ids.add(n.id);
     for (const r of n.requires || []) assert.ok(ids.has(r) || s.nodes.some((x) => x.id === r), `${n.id} 指向不存在的 ${r}`);
   }
-  assert.equal(s.nodes.length, 36, '技能樹應為 36 節點（index.html 寫死 0 / 36）');
+  assert.ok(s.nodes.length >= 30, `技能樹節點太少（${s.nodes.length}）`);
+  // 層級必須等於「父親的最長路徑 + 1」，否則樹會画出跨層箭頭
+  const byId = new Map(s.nodes.map((n) => [n.id, n]));
+  for (const n of s.nodes) {
+    const need = 1 + Math.max(0, ...(n.requires || []).map((r) => byId.get(r).tier));
+    assert.equal(n.tier, need, `${n.id} tier=${n.tier} 與 requires 推演出的 ${need} 不符`);
+  }
+  // 52 週是计划的骨架（Phase 0-4 = 6/12/12/14/8），改週數必须同步 PLAN.md
+  const weeks = Object.values(w.phases).map((p) => p.weeks);
+  assert.deepEqual(weeks, [6, 12, 12, 14, 8], `各 Phase 週數與 PLAN.md 不符：${weeks.join('/')}`);
+  assert.equal(weeks.reduce((a, b) => a + b, 0), 52, '總週數必須是 52');
+  const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
+  assert.match(html, /id="tree-progress">0 \/ — 已解鎖</, '技能樹總數不准寫死在 markup（會跟資料打架）');
   for (const x of b.badges) assert.ok(['>=', '>', '<=', '=='].includes(x.op), '徽章 op 不支援：' + x.op);
 });

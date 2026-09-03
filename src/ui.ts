@@ -55,19 +55,34 @@
       const saved = vm.todayLog;
       const exs = p.workout || [];
       const savedByName: Map<string, any> = new Map((vm.exercises || []).map((e) => [e.exercise_name, e]));
+      const pd: any = p.phaseData || {};
+      const meta: any = (pd.day_meta || {})[vm.plan.dayKey] || {};
       const rows = exs.map((e, i) => {
         const done = saved ? !!savedByName.get(e.name)?.completed : !!this.checks.get(e.name);
+        // note/regression 是計劃的「退階版」要求：做不了時要有替代方案，不是留白（PLAN.md 第三次審議）
+        const extra = `${e.note ? `<span class="ex-detail ex-note">${esc(e.note)}</span>` : ''}`
+          + `${e.regression ? `<span class="ex-detail ex-reg">退階：${esc(e.regression)}</span>` : ''}`;
         return `<label class="ex-row ${done ? 'done' : ''}" data-name="${esc(e.name)}">
           <input type="checkbox" data-idx="${i}" ${done ? 'checked' : ''}>
           <span class="ex-main"><span class="ex-name">${esc(e.name)}</span>
-            <span class="ex-detail">${esc(e.detail || '')}</span></span>
+            <span class="ex-detail">${esc(e.detail || '')}</span>${extra}</span>
           <span class="ex-kind">${esc(vm.kindLabels[e.kind] || e.kind || '')}</span>
           <span class="ex-xp">+${Number(e.xp) || 0}</span></label>`;
       }).join('');
-      card.innerHTML = `<div class="workout-head"><h3>${esc(vm.plan.dayKey?.toUpperCase() || '')} 訓練日</h3>
-        <span class="chip">${exs.length} 項 · ${exs.reduce((s, e) => s + (Number(e.xp) || 0), 0)} XP</span></div>
+      const gate = (pd.gate || []).map((g: string) => `<li>☐ ${esc(g)}</li>`).join('');
+      const goals = vm.workoutData?.goals;
+      const footer = `${gate ? `<div class="gate"><h4>進階標準（看能力，不看日曆）</h4>
+          <ul>${gate.map((g: string) => `<li>☐ ${esc(g)}</li>`).join('')}</ul>
+          ${pd.gate_note ? `<p class="hint">${esc(pd.gate_note)}</p>` : ''}</div>` : ''}
+        ${goals ? `<p class="hint">🎯 必達：${esc((goals.must || []).join('／'))}<br>挑戰：${esc((goals.stretch || []).join('／'))}｜延伸：${esc((goals.bonus || []).join('／'))}</p>` : ''}`;
+      card.innerHTML = `<div class="workout-head"><h3>${esc(vm.plan.dayKey?.toUpperCase() || '')} 訓練日${meta.label ? ` · ${esc(meta.label)}` : ''}</h3>
+        <span class="chip">${exs.length} 項 · ${exs.reduce((s, e) => s + (Number(e.xp) || 0), 0)} XP</span>
+        ${meta.place ? `<span class="chip">📍 ${esc(meta.place)}</span>` : ''}
+        ${meta.optional ? '<span class="chip">可選</span>' : ''}</div>
+        ${pd.focus ? `<p class="hint">${esc(pd.focus)}</p>` : ''}
         <div class="ex-list">${rows}</div>
-        ${saved ? `<p class="hint">已儲存 ${esc(saved.log_date)}：完成 ${saved.completed ? '是' : '否'}，可直接修改再存。</p>` : ''}`;
+        ${saved ? `<p class="hint">已儲存 ${esc(saved.log_date)}：完成 ${saved.completed ? '是' : '否'}，可直接修改再存。</p>` : ''}
+        ${footer}`;
 
       card.querySelectorAll('input[type=checkbox]').forEach((cb) => {
         cb.addEventListener('change', () => {
