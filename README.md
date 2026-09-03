@@ -62,7 +62,9 @@ REPO_NAME=hs-tracker bash scripts/ship.sh
 ## 上線（雲端同步，可選）
 
 ```bash
-export clasp_config_auth=/usr/local/share/clasp/.clasprc.json   # 或直接 clasp login
+export CLASP_BIN=/tmp/clasp-tools/node_modules/.bin/clasp   # 沙箱內全域 npm 不可寫時用本地安裝處
+export CLASP_AUTH=/tmp/clasp/.clasprc.json                   # 憑證別放 repo（/home/user 會被快照留存）
+clasp login   # 或把 .clasprc.json 內容放進 $CLASP_AUTH
 node scripts/deploy-gas.mjs              # 只預覽，不碰你帳號
 node scripts/deploy-gas.mjs --yes        # 建專案 → push → 建部署 → bootstrap 設密鑰＋建表 → 刪 token → 再 push
 ```

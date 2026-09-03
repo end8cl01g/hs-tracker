@@ -33,7 +33,9 @@ const run = (cmd, args, opts = {}) => {
     throw new Error(`${cmd} ${args.join(' ')} 失敗：${out || e.message}`);
   }
 };
-const clasp = (args, opts) => run('clasp', ['-A', AUTH, ...args], opts);
+// 沙箱裡 clasp 常常不在 PATH（全域 npm 目錄不可寫）→ 允許 CLASP_BIN 指到本地安裝處
+const CLASP_BIN = process.env.CLASP_BIN || (existsSync('/tmp/clasp-tools/node_modules/.bin/clasp') ? '/tmp/clasp-tools/node_modules/.bin/clasp' : 'clasp');
+const clasp = (args, opts) => run(CLASP_BIN, ['-A', AUTH, ...args], opts);
 
 export function parseDeploymentId(text) {
   const t = String(text || '');
