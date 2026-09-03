@@ -160,7 +160,7 @@ pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(b
   const pkg = JSON.parse(read('package.json'));
   const need = { 'rollup.config.mjs': '前端', 'rollup.gas.config.mjs': 'GAS' };
   for (const [f] of Object.entries(need)) T(existsSync(join(ROOT, f)), `建置設定 ${f} 存在`, `缺 ${f} → src/*.ts 沒有人打包`);
-  T(/"build":\s*"rollup -c && node scripts\/build\.mjs"/.test(read('package.json')), 'npm run build 先 rollup 再組 dist', 'npm run build 沒跑 rollup（dist 會是舊 bundle 或缺 app.js）');
+  T(/"build":[^\n]*rollup -c && node scripts\/build\.mjs/.test(read('package.json')), 'npm run build 先 rollup 再組 dist', 'npm run build 沒跑 rollup（dist 會是舊 bundle 或缺 app.js）');
   T(/"gas:build":[^\n]*rollup -c rollup\.gas\.config\.mjs/.test(read('package.json')), 'npm run gas:build 存在', '缺 gas:build → 部署前不會產生 gas/dist/Code.gs');
   T(/"gas:build":[^\n]*tsc -p gas\/tsconfig\.json --noEmit/.test(read('package.json')), 'gas:build 先型別檢查再打包', '沒先 tsc --noEmit → 型別壞了照样打包推雲端（雲端只會回 500）');
   T(/"typecheck":/.test(read('package.json')), 'npm run typecheck 存在', '缺 typecheck（CI 就不會擋型別錯誤）');

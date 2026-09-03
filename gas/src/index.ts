@@ -5,3 +5,4 @@ import './utils';
 import './config';
 import './sheets';
 import './code';
+import './setup';   // public 入口（setupDatabase / runDoctor）：編輯器下拉選單只認不結尾帶底線的函式

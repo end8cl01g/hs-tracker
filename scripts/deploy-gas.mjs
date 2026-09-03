@@ -156,7 +156,7 @@ async function bootstrapAndVerify(execUrl, token, secret) {
     throw new Error([
       '雲端要一次「首次執行核准」：appsscript.json 已不宣告 oauthScopes（交給 Google 自動推），但新推斷出來的 scope 仍要本人核准一次，headless 做不了。',
       '  1) 開 https://script.google.com/d/' + (readClaspJson()?.scriptId || '<scriptId>') + '/edit',
-      '  2) 上方選單 Run（執行）▸ 函式選 doctor_ ▸ Run（執行）',
+      '  2) 上方選單 Run（執行）▸ 函式選 setupDatabase ▸ Run（執行）——它會建表並順手觸發核准（doctor_ 這類底線結尾的函式不會出現在選單裡）',
       '  3) 跳出 "Authorization required" ▸ Review Permissions ▸ 選帳號 ▸ Advanced ▸ Go to ... (unsafe) ▸ Allow',
       '  4) 回來重跑同一條命令即可（bootstrap 帶 force，重複執行是安全的）',
       '  錯誤原文：' + detail,

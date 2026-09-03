@@ -33,6 +33,11 @@ npm run dev         # rollup -w（改 src 即重打包；瀏覽器重新整理�
    壓縮後字串可能被改寫 → SW 永遠抓舊殼。`index.html` 的內嵌版號腳本走同一套注入。
 
 `tsconfig.json` 目前 `strict: false`（遷移當下的務實選擇：先讓 12 檔跑起來，再逐檔收緊）。
+**人工入口的名字不能以底線結尾**：Apps Script 把 `foo_()` 當成 private——不會出現在 Run 下拉選單、
+也無法被 `google.script.run` 呼叫。本專案內部函式照慣例都帶底線，所以 `gas/src/setup.ts` 專門放了兩隻
+public 殼：`setupDatabase()`（建／修三張表，冪等，順手觸發核准）與 `runDoctor()`（診斷）。
+`npm run check` 會擋「產物裡沒有任何 public 可 Run 入口」這種狀態。
+
 即使如此，typecheck 已經抓到一個会上線的 bug：`doctor_()` 引用不存在的 `CONFIG_BASE_URL`
 （正解是 `configBaseUrl_()`）——那個函式正是「要去編輯器按核准」時要跑的，會在按下 Allow 前先 ReferenceError。
 
@@ -102,7 +107,7 @@ node scripts/deploy-gas.mjs --yes        # 建專案 → push → 建部署 → 
    `webapp.access` 也只影響編輯器建的部署 → 要在 Deploy ▸ Manage deployments 把 *Who has access* 設成 **Anyone**（已完成）。
 2. Scope 首次核准：`appsscript.json` **不要宣告 `oauthScopes`**（宣告了就會蓋掉 Google 的自動推斷，換代碼時必炸；
    `npm run check` 會紅燈擋下），改由 Google 依代碼自動推。但自動推斷出來的 scope 仍要本人核准一次：
-   編輯器 ▸ Run ▸ `doctor_` ▸ Review Permissions ▸ Advanced ▸ Allow。沒核准時 `SpreadsheetApp.create` 回
+   編輯器 ▸ Run ▸ **`setupDatabase`** ▸ Review Permissions ▸ Advanced ▸ Allow。沒核准時 `SpreadsheetApp.create` 回
    `You do not have permission…Required permissions: …/spreadsheets`；`deploy-gas.mjs` 認得這個訊息，會直接印出
    點選路徑而不是空轉重試。`bootstrap` 帶 `force`、密鑰由腳本產生，所以**重跑同一條命令是安全的**。
    （實測也證明 headless 繞不過去：Apps Script Execution API `projects/run` 只回 HTML 權限頁。）

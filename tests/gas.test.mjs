@@ -111,3 +111,12 @@ test('appsscript.json：V8、最小權限、Web App 設定齊備', () => {
   // → 不宣告，交給 Google 自動推（使用者明示的政策）。
   assert.ok(!('oauthScopes' in m) || !m.oauthScopes.length, 'appsscript.json 不該硬寫 oauthScopes（會蓋掉自動推斷）');
 });
+
+test('雲端有「人能按」的 public 入口（底線結尾的函式不會出現在 Run 選單）', () => {
+  const bundle = existsSync(BUNDLE) ? readFileSync(BUNDLE, 'utf8') : '';
+  assert.match(bundle, /^function setupDatabase\(\)\s*\{/m, 'gas/dist/Code.gs 缺 public 的 setupDatabase()（人工建表入口）');
+  assert.match(bundle, /^function runDoctor\(\)\s*\{/m, '缺 public 的 runDoctor()');
+  const setup = /function setupDatabase\(\)[\s\S]*?\n}/.exec(bundle)?.[0] || '';
+  assert.ok(!/bootstrapSecret_|SHARED_SECRET'\)\.setProperty|setProperty\('SHARED_SECRET'/.test(setup), 'setupDatabase 不准碰密鑰（會讓 App 貼好的 secret 失效）');
+  assert.match(setup, /ensureSheets_\(/, 'setupDatabase 必須走同一套 ensureSheets_（冪等建表），不是另刻一份');
+});
