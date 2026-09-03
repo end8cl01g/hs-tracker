@@ -175,11 +175,14 @@
         await App.refresh();
       });
       $('setting-gas-url')?.addEventListener('change', async (e) => {
-        const v = ((e.target) as unknown as El).value.trim();
-        if (v && !/^https:\/\/script\.google\.com\/macros\/s\//.test(v)) {
-          global.UI.toast('URL 看起來不是 GAS Web App（應為 https://script.google.com/macros/s/…/exec）', true);
-        }
-        await global.DataLayer.setSetting('gas_url', v); await App.refresh();
+        const el = (e.target) as unknown as El;
+        const v = global.GASProxy.cleanUrl(el.value);
+        const problem = global.GASProxy.urlProblem(v);
+        el.value = v;
+        if (problem) { global.UI.toast('URL 不收：' + problem, true); return; }   // 收進來只會變成「不能同步」，不如当场擋
+        await global.DataLayer.setSetting('gas_url', v);
+        global.UI.toast(v ? 'GAS URL 已存，按「📡 測試連線」驗證' : '已清空 → 回到純離線模式');
+        await App.refresh();
       });
       $('setting-gas-secret')?.addEventListener('change', async (e) => {
         await global.DataLayer.setSetting('gas_secret', ((e.target) as unknown as El).value.trim());
@@ -190,6 +193,27 @@
         global.UI.toast('測試連線中…');
         try { const r = await global.GASProxy.ping(); global.UI.toast(`✅ 連通：${JSON.stringify(r).slice(0, 90)}`); }
         catch (e) { global.UI.toast(`❌ ${e.kind || 'error'}：${e.message}`, true); }
+      });
+      $('btn-copy-diag')?.addEventListener('click', async () => {
+        // 一鍵把「我們这边查不到的東西」（UA、SW 接管與否、實際存到的 URL、ping 原文）打包成文字，
+        // 使用者貼回訊息就能直接定位；以前只能反覆問「你看到什麼錯誤」。
+        const dl = global.DataLayer;
+        const info: any = {
+          t: new Date().toISOString(),
+          build: (global as any).BUILD || 'dev',
+          ua: (global as any).navigator?.userAgent || '?',
+          origin: (global as any).location?.origin || '?',
+          sw_controlled: !!(global as any).navigator?.serviceWorker?.controller,
+          gas_url: (await dl.getSetting('gas_url')) || '(未設定)',
+          secret_len: String((await dl.getSetting('gas_secret')) || '').length,
+          device_id: await global.GASProxy.deviceId(),
+          pending: global.SyncManager?.state?.pending ?? '?',
+          persisted: (global as any).navigator?.storage?.persisted ? await (global as any).navigator.storage.persisted() : 'n/a',
+        };
+        try { info.ping = await global.GASProxy.ping(); } catch (err: any) { info.ping_error = `${err.kind || 'err'}: ${err.message}`; }
+        const txt = JSON.stringify(info, null, 1);
+        try { await (global as any).navigator.clipboard.writeText(txt); global.UI.toast('診斷已複製到剪貼簿，貼回給我就行'); }
+        catch (_) { (global as any).prompt('複製這段文字（剪貼簿不可用）', txt); }
       });
       $('btn-sync-now')?.addEventListener('click', () => App.doSync());
       $('btn-sync-now-top')?.addEventListener('click', () => App.doSync());

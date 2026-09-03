@@ -6,7 +6,8 @@
  *    → 這裡用「CacheService 6h（命中省 UrlFetch 配額）＋ PropertiesService 存版本雜湊（可無限久）」；
  *    超過 6 小時的場合退回直接抓 Pages，並用雜湊判斷有沒有變，不變就沿用。
  */
-const CONFIG_BASE_URL_DEFAULT = 'https://YOUR_USERNAME.github.io/hs-tracker/data';
+// 現況：本專案的前端就放在這個 Pages 網址（改 repo 名/換帳號時用 Project Property `CONFIG_BASE_URL` 覆寫，不必改碼）
+const CONFIG_BASE_URL_DEFAULT = 'https://end8cl01g.github.io/hs-tracker/data';
 /** 可在 Project Properties 設 CONFIG_BASE_URL（例：自訂網域或 repo 改名）*/
 function configBaseUrl_() {
   return PropertiesService.getScriptProperties().getProperty('CONFIG_BASE_URL') || CONFIG_BASE_URL_DEFAULT;

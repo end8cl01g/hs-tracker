@@ -117,10 +117,11 @@
             <input type="url" id="setting-gas-url" placeholder="https://script.google.com/macros/s/…/exec">
           </label>
           <label>同步密鑰（＝GAS 的 SHARED_SECRET）
-            <input type="password" id="setting-gas-secret" placeholder="跑 bootstrapSecret_() 後貼在這裡">
+            <input type="password" id="setting-gas-secret" placeholder="scripts/deploy-gas.mjs 印出的那 64 碼（只存本機，匯出會被剔除）">
           </label>
           <div class="btn-row">
             <button id="btn-sync-now" class="btn-secondary" type="button">🔄 立即同步</button>
+            <button id="btn-copy-diag" class="btn-secondary" type="button">🧪 複製診斷</button>
             <button id="btn-test-conn" class="btn-secondary" type="button">📡 測試連線</button>
           </div>
         </div>

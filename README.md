@@ -115,6 +115,13 @@ GH_TOKEN_NONE=1 bash scripts/ship.sh   # 暫時無視落盤 token（測試用）
 部署流程本身在 `.github/workflows/deploy.yml`：每次 push main 都先 `check + test + build`，全綠才上線。
 `sw.js` 的 cache key 由 `BUILD_ID`（= commit sha）注入，所以改版一定換 cache，不會卡舊殼。
 
+## 同步壞掉時先看這段（實測踩過）
+
+`https://script.google.com/macros/s/…/exec` 在瀏覽器開會被 302 到
+`https://script.googleusercontent.com/macros/echo?user_content_key=…`。**第二條是那次回覆的快照，不是端點**
+（POST 它會回 405 ＋ HTML）。App 的「GAS Web App URL」只能貼第一條；現在客戶端會先擋下來並直接告訴你原因，
+設定頁的 **🧪 複製診斷** 會把 UA／SW 接管與否／實際存到的 URL／ping 原文打包成一行，貼回來就能定位。
+
 ## 上線（雲端同步，可選）
 
 ```bash
