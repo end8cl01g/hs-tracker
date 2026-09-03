@@ -142,6 +142,7 @@ test('scope 未核准時要認出來並給出編輯器核准路徑（而不是�
   assert.match(src, /Required permissions[\s\S]{0,120}break;/, '偵測到授權問題要立刻跳出重試迴圈，不要空轉 30 次');
   assert.match(src, /Review Permissions/);
   assert.match(src, /bootstrap 帶 force，重複執行是安全的/);
+  assert.match(src, /不宣告 oauthScopes（交給 Google 自動推）/, '訊息要講清楚：不是叫人在 manifest 加 scope');
   assert.ok(!/JSON\.stringify\(\(r\.json \|\| r\.text \|\| ''\)\.toString\(\)/.test(src), '别再產生 [object Object] 這種錯誤訊息');
 });
 
@@ -153,4 +154,12 @@ test('.githooks 在 git index 裡必須是可執行檔（否則 git 靜默忽略
     assert.equal(mode, '100755', `${path} 的模式是 ${mode}，git 會因為少了可執行位而跳過它`);
   }
   assert.match(readFileSync(join(ROOT, 'package.json'), 'utf8'), /chmod \+x \.githooks/);
+});
+
+test('clasp 或憑證不在時要給可照抄的重建指令（沙箱重啟必現這狀態）', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  assert.match(src, /function preflight\(\)/);
+  assert.match(src, /if \(YES\) preflight\(\)/, '預覽模式不該被 preflight 擋（沒帳號也能看要做什麼）');
+  assert.match(src, /憑證檔不存在/);
+  assert.match(src, /CLASP_BIN=.*CLASP_AUTH=/s);
 });

@@ -32,8 +32,7 @@ const DESTROY = process.argv.includes('--destroy');
 process.env.clasp_config_auth = AUTH;
 
 // clasp 常不在 PATH（全域 npm 目錄不可寫）→ 依序找本地安裝處
-const CLASP_BIN = process.env.CLASP_BIN || ['/home/user/.cache/clasp-tools/node_modules/.bin/clasp', '/tmp/clasp-tools/node_modules/.bin/clasp']
-  .find((p) => existsSync(p)) || 'clasp';
+const CLASP_BIN = process.env.CLASP_BIN || ['/home/user/.cache/clasp-tools/node_modules/.bin/clasp', '/tmp/clasp-tools/node_modules/.bin/clasp'].find((p) => existsSync(p)) || 'clasp';
 
 const log = (...a) => console.log(...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -147,7 +146,7 @@ async function bootstrapAndVerify(execUrl, token, secret) {
   const detail = JSON.stringify(lastVerify?.json?.detail || lastVerify?.text || '').slice(0, 200);
   if (/do not have permission|Authorization is required|Required permissions/i.test(detail)) {
     throw new Error([
-      '雲端缺一次性的「授權」：修改 appsscript.json 的 oauthScopes 之後，Apps Script 要本人核准一次，headless 做不了。',
+      '雲端要一次「首次執行核准」：appsscript.json 已不宣告 oauthScopes（交給 Google 自動推），但新推斷出來的 scope 仍要本人核准一次，headless 做不了。',
       '  1) 開 https://script.google.com/d/' + (readClaspJson()?.scriptId || '<scriptId>') + '/edit',
       '  2) 上方選單 Run（執行）▸ 函式選 doctor_ ▸ Run（執行）',
       '  3) 跳出 "Authorization required" ▸ Review Permissions ▸ 選帳號 ▸ Advanced ▸ Go to ... (unsafe) ▸ Allow',
@@ -166,7 +165,27 @@ function saveState(extra) {
   return p;
 }
 
+/** 沙箱重啟會清空 /tmp 與 /home/user/.cache（兩者都不進快照）→ 憑證與本地裝的 clasp 都會消失。
+ *  少了這層預檢查，報錯會是難懂的 `spawnSync clasp ENOENT`。 */
+function preflight() {
+  const missing = [];
+  if (CLASP_BIN !== 'clasp' ? !existsSync(CLASP_BIN) : !whichClasp()) missing.push(`clasp 找不到（試過：${CLASP_BIN}）`);
+  if (!existsSync(AUTH)) missing.push(`憑證檔不存在：${AUTH}`);
+  if (!missing.length) return;
+  throw new Error([
+    ...missing,
+    '  → 裝：mkdir -p /home/user/.cache/clasp-tools && cd /home/user/.cache/clasp-tools && npm i @google/clasp',
+    '  → 憑證：把 .clasprc.json 內容寫進 /home/user/.cache/clasp/.clasprc.json（0600，不進 repo、不進快照，重啟即蒸发）',
+    '  → 或直接指定：CLASP_BIN=/路徑/clasp CLASP_AUTH=/路徑/.clasprc.json node scripts/deploy-gas.mjs --yes',
+  ].join('\n'));
+}
+
+function whichClasp() {
+  try { execFileSync('clasp', ['--version'], { stdio: 'ignore' }); return true; } catch { return false; }
+}
+
 async function main() {
+  if (YES) preflight();
   if (!YES) {
     log('這是**會改動你 Google 帳號**的部署（建 Apps Script 專案、公開 Web App 端點）。');
     log('預覽模式，未做任何變更。要執行請加 --yes。\n');
@@ -271,4 +290,6 @@ async function main() {
   log('輪替密鑰：node scripts/deploy-gas.mjs --yes（會產生新密鑰並重設）');
 }
 
-main().catch((e) => { console.error('✗ ' + e.message); process.exit(1); });
+// 只有「直接執行」時才跑：被測試 import 時不能有副作用（會把 console 打進 node:test 的輸出流）
+const INVOKED_DIRECTLY = process.argv[1] && process.argv[1].endsWith('deploy-gas.mjs');
+if (INVOKED_DIRECTLY) main().catch((e) => { console.error('✗ ' + e.message); process.exit(1); });

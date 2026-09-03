@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Press to Handstand Tracker — 離線優先 PWA（sql.js + GitHub Pages + GAS Proxy）",
   "scripts": {
-    "pretest": "node scripts/deps.mjs",
+    "pretest": "node scripts/deps.mjs && node scripts/build.mjs",
     "test": "node --test tests/",
     "check": "node scripts/check.mjs",
     "build": "node scripts/build.mjs",
