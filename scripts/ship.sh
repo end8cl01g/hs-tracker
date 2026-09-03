@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# scripts/ship.sh — 把本 repo 推上 GitHub Pages（全自動，只需要一個 fine-grained PAT）
-# 需要的權限：Contents: Read and write + Administration: Read and write，且**只授權給一個 repo**。
+# scripts/ship.sh — 把本 repo 推上 GitHub Pages（全自動，只需要一個 PAT）
+# 建議 fine-grained：Contents(RW) + Administration(RW)，且只授權這一個 repo。
+# 注意：傳統 ghp_ token 是帳號級全權限（repo/delete_repo/admin:org/…），用完務必撤銷。
+# token 搜尋序：$GITHUB_TOKEN → $GH_TOKEN → $GH_TOKEN_FILE → .deploy/github-token（gitignore、0600）。
+# 想暫時無視落盤 token（例如測試）：GH_TOKEN_NONE=1 bash scripts/ship.sh
 # 用法：
 #   GITHUB_TOKEN=github_pat_xxx bash scripts/ship.sh
 #   # 或不進 shell history：
@@ -13,16 +16,19 @@ DESC="${DESC:-Press to Handstand Tracker — 離線優先 PWA（sql.js + Pages +
 OWNER="${OWNER:-}"                       # 留空 → 從 token 反查
 DRY="${DRY:-0}"
 
-TOKEN="${GITHUB_TOKEN:-}"
+cd "$(dirname "$0")/.."
+# 憑證搜尋序：環境變數 → 指定檔 → .deploy/github-token（已 gitignore、0600；「焊死」用法）
+TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
 [[ -z "$TOKEN" && -n "${GH_TOKEN_FILE:-}" ]] && TOKEN="$(tr -d '\n\r \t' < "$GH_TOKEN_FILE")"
+[[ -z "$TOKEN" && -f .deploy/github-token ]] && TOKEN="$(tr -d '\n\r \t' < .deploy/github-token)"
+if [[ "${GH_TOKEN_NONE:-0}" == "1" ]]; then TOKEN=""; fi   # 測試／臨時別用落盤憑證
 if [[ -z "$TOKEN" ]]; then
-  echo "✗ 沒有 token。用 GITHUB_TOKEN=… 或 GH_TOKEN_FILE=~/.config/gh-token 提供。"
+  echo "✗ 沒有 token。用 GITHUB_TOKEN=…、GH_TOKEN_FILE=~/.config/gh-token，或寫進 .deploy/github-token（0600）。"
   echo "  建 token：https://github.com/settings/personal-access-tokens/new"
   echo "  → Repository access: Only select repositories → 這個 repo；Permissions: Contents(RW), Administration(RW)"
   exit 2
 fi
 
-cd "$(dirname "$0")/.."
 API="https://api.github.com"
 hdr=(-H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
 
@@ -48,6 +54,21 @@ if [[ "$CODE" == "201" ]]; then say "已建立 $OWNER/$REPO"
 elif grep -q 'already exists' /tmp/ship-repo.json; then say "repo 已存在，沿用"
 else die "建 repo 失敗 HTTP $CODE: $(head -c 300 /tmp/ship-repo.json)"; fi
 
+say "啟用 Pages（build_type=workflow，走 Actions 產物，不經 Jekyll）"
+# Pages 必須在 push「之前」就存在，否则 push 觸發的那次 Actions 会在 deploy-pages 步驟上失敗
+PC=404
+for try in 1 2 3 4 5; do
+  PC=$(curl -sS -o /tmp/ship-pages.json -w '%{http_code}' "${hdr[@]}" -X POST "$API/repos/$OWNER/$REPO/pages" \
+    -d '{"build_type":"workflow","source":{"branch":"main","endpoint":"gh-pages"}}')
+  [[ "$PC" == "201" || "$PC" == "409" ]] && break
+  say "Pages 還沒就緒（HTTP $PC）→ 等 5 秒重試（$try/5）"; sleep 5
+done
+if [[ "$PC" == "201" ]]; then say "Pages 已啟用"
+elif [[ "$PC" == "409" ]]; then say "Pages 已在設定中，改發 PUT 更新"
+  curl -sS -o /dev/null "${hdr[@]}" -X PUT "$API/repos/$OWNER/$REPO/pages" -d '{"build_type":"workflow","source":{"branch":"main","endpoint":"gh-pages"}}'
+else die "Pages 啟用失敗 HTTP $PC: $(head -c 300 /tmp/ship-pages.json)"; fi
+
+
 say "git 初始化與推送 main"
 [[ -d .git ]] || git init -q
 git add -A
@@ -59,14 +80,6 @@ git push -q "$PUSH_URL" HEAD:refs/heads/main || die "push 失敗（token 需要 
 git remote remove origin 2>/dev/null || true
 git remote add origin "https://github.com/${OWNER}/${REPO}.git"     # 遠端不存 token
 SHA=$(git rev-parse --short HEAD); say "已推送 main @ $SHA"
-
-say "啟用 Pages（build_type=workflow，走 Actions 產物，不經 Jekyll）"
-PC=$(curl -sS -o /tmp/ship-pages.json -w '%{http_code}' "${hdr[@]}" -X POST "$API/repos/$OWNER/$REPO/pages" \
-  -d '{"build_type":"workflow","source":{"branch":"main","endpoint":"gh-pages"}}')
-if [[ "$PC" == "201" ]]; then say "Pages 已啟用"
-elif [[ "$PC" == "409" ]]; then say "Pages 已在設定中，改發 PUT 更新"
-  curl -sS -o /dev/null "${hdr[@]}" -X PUT "$API/repos/$OWNER/$REPO/pages" -d '{"build_type":"workflow","source":{"branch":"main","endpoint":"gh-pages"}}'
-else die "Pages 啟用失敗 HTTP $PC: $(head -c 300 /tmp/ship-pages.json)"; fi
 
 say "等第一次 Actions 跑完（最多 5 分鐘）"
 URL=""

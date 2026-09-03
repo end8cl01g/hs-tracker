@@ -25,10 +25,19 @@ test('deploy-gas.mjs 沒加 --yes 時不得動帳號（只印預覽）', () => {
 });
 
 test('ship.sh 沒 token 時要退出 2 並給出建 token 的連結', () => {
-  const r = run('bash', ['scripts/ship.sh'], { GITHUB_TOKEN: '', GH_TOKEN_FILE: '', GH_TOKEN: '' });
+  const r = run('bash', ['scripts/ship.sh'], { GITHUB_TOKEN: '', GH_TOKEN_FILE: '', GH_TOKEN: '', GH_TOKEN_NONE: '1' });
   assert.equal(r.code, 2, r.out);
   assert.match(r.out, /personal-access-tokens\/new/);
   assert.match(r.out, /Contents/);
+});
+
+test('ship.sh 會讀落盤憑證 .deploy/github-token，並留一個「暫時別讀」的開關', () => {
+  const sh = readFileSync(join(ROOT, 'scripts', 'ship.sh'), 'utf8');
+  assert.match(sh, /-f \.deploy\/github-token/, '要有「焊死」的落盤位置（重啟容器後還能推）');
+  assert.match(sh, /GH_TOKEN_NONE/, '但必須能一鍵無視它（否則測試與共用機器上都危險）');
+  assert.match(sh, /傳統 ghp_ token 是帳號級全權限|ghp_ .*全權限/, '用了全權限 token 就要在檔頭寫明風險與撤銷');
+  const tok = join(ROOT, '.deploy', 'github-token');
+  if (existsSync(tok)) assert.equal(statSync(tok).mode & 0o777, 0o600, '.deploy/github-token 必須 0600');
 });
 
 test('ship.sh 有 DRY=1 時跑完檢查但不 push', { skip: !process.env.GITHUB_TOKEN && !process.env.GH_TOKEN_FILE }, () => {

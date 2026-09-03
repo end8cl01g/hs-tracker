@@ -184,16 +184,15 @@ pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(b
 
 // 18) 憑證「焊死」的代價要被我盯住：.deploy/.clasprc.json = Google 長期授權，只能 0600、只能被 ignore
 {
-  const auth = join(ROOT, '.deploy', '.clasprc.json');
   const gi = read('.gitignore');
   T(/^\.deploy\//m.test(gi), '.gitignore 蓋住整個 .deploy/', '.deploy/ 沒被 ignore → 密鑰與憑證會被 commit 進 public repo');
-  if (existsSync(auth)) {
-    const mode = statSync(auth).mode & 0o777;
-    T(mode === 0o600, `.deploy/.clasprc.json 權限 0600（實得 ${mode.toString(8)}）`, '憑證檔權限太寬：同容器其他程序可讀');
-    T(/myaccount\.google\.com\/permissions/.test(read('README.md')), '憑證焊在 repo 內時，README 必須寫明撤回步驟', '有 .deploy/.clasprc.json 卻沒文件：以後沒人知道這份授權怎麼收回去');
-  } else {
-    T(true, '憑證未落在 repo 內（放 .cache/clasp/ 那种蒸发式位置也可以）', '');
-  }
+  // 「焊死」的代价：.deploy 裡每一個檔都是長期憑證（Google refresh token、GAS 同步密鑰、GitHub PAT）
+  const dir = join(ROOT, '.deploy');
+  const secrets = existsSync(dir) ? readdirSync(dir).filter((f) => !f.endsWith('.md')) : [];
+  const loose = secrets.filter((f) => (statSync(join(dir, f)).mode & 0o777) !== 0o600);
+  T(!loose.length, `.deploy/ 機密檔一律 0600（共 ${secrets.length} 檔）`, '權限太寬（同容器其他程序可讀）：' + loose.join(', ') + ' → chmod 600 .deploy/*');
+  if (secrets.includes('.clasprc.json')) T(/myaccount\.google\.com\/permissions/.test(read('README.md')), 'Google 憑證焊在 repo 內時，README 必須寫明撤回步驟', '有 .deploy/.clasprc.json 卻沒文件：以後沒人知道這份授權怎麼收回去');
+  if (secrets.includes('github-token')) T(/settings\/tokens|撤銷|撤掉/.test(read('README.md')), 'GitHub PAT 焊在 repo 內時，README 要寫明撤銷位置', '有 .deploy/github-token 卻沒撤回說明 → 全權限 PAT 會無限期活著');
 }
 
 console.log('靜態閉環檢查');
