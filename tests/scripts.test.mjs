@@ -76,7 +76,8 @@ test('.gitignore 把憑證與一次性 token 檔全部擋掉', () => {
 });
 
 test('clasp 只推 gas/dist 的產物，且 .claspignore 不會把 Code.gs 擋掉', () => {
-  const cfg = JSON.parse(readFileSync(join(ROOT, 'gas', '.clasp.json'), 'utf8'));
+  // 注意：讀入庫的 template，不是 gas/.clasp.json（後者含 scriptId、被 gitignore，CI 上不存在）
+  const cfg = JSON.parse(readFileSync(join(ROOT, 'gas', '.clasp.template.json'), 'utf8'));
   assert.equal(cfg.rootDir, 'dist', 'rootDir 必須是 dist：源碼是 .ts，推上去雲端會看不懂');
   const p = join(ROOT, 'gas', '.claspignore');
   assert.ok(existsSync(p), '缺 gas/.claspignore');
