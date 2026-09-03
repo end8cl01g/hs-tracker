@@ -166,8 +166,16 @@ pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(b
   T(/"typecheck":/.test(read('package.json')), 'npm run typecheck 存在', '缺 typecheck（CI 就不會擋型別錯誤）');
   T(/pkg\.devDependencies/.test('') || /typescript/.test(pkg.devDependencies ? Object.keys(pkg.devDependencies).join() : ''), 'devDependencies 有 typescript', 'typescript 沒入 devDependencies → CI 裝不到');
 
-  const clasp = JSON.parse(read('gas/.clasp.json'));
-  T(clasp.rootDir === 'dist', 'clasp rootDir = gas/dist（只推產物）', `clasp rootDir=${clasp.rootDir}：會把 .ts 推到雲端（GAS 不認得）`);
+  // .clasp.json 含 scriptId、被 gitignore（CI 上不存在）→ 用入庫的 .clasp.template.json 當政策來源，
+  // 兩個都在時必須一致，否則「本機綠、CI 紅」（CI 第一次就踩過：ENOENT gas/.clasp.json）
+  const tpl = JSON.parse(read('gas/.clasp.template.json'));
+  T(tpl.rootDir === 'dist', 'clasp rootDir = gas/dist（只推產物；由入庫的 template 把關）', `template rootDir=${tpl.rootDir}：會把 .ts 推到雲端（GAS 不認得）`);
+  T(!('scriptId' in tpl), 'template 內不含 scriptId', 'scriptId 不該入庫（那是你專案的寫入憑證座標）');
+  if (existsSync(join(ROOT, 'gas', '.clasp.json'))) {
+    const clasp = JSON.parse(read('gas/.clasp.json'));
+    T(clasp.rootDir === tpl.rootDir, '本機 .clasp.json 與 template 的 rootDir 一致', `本機 ${clasp.rootDir} ≠ template ${tpl.rootDir} → CI 與部署行為會分岔`);
+    T(/^\.clasp\.json$/m.test(read('.gitignore')) || /gas\/\.clasp\.json/.test(read('.gitignore')), '.clasp.json 必須被 gitignore（內含 scriptId）', '.clasp.json 會被 commit 進 public repo');
+  }
   const distFiles = existsSync(join(ROOT, 'gas', 'dist')) ? readdirSync(join(ROOT, 'gas', 'dist')) : [];
   T(distFiles.length > 0, 'gas/dist 已建置（Code.gs + appsscript.json）', 'gas/dist 是空的 → 先 npm run gas:build');
   T(!distFiles.some((f) => f.endsWith('.ts')), 'gas/dist 內沒有 .ts', `雲端會收到 .ts：${distFiles.filter((f) => f.endsWith('.ts')).join(', ')}`);

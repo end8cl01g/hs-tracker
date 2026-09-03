@@ -68,6 +68,14 @@ function push() {
   return out.split('\n').filter((l) => /^Pushed|appsscript/.test(l)).join(' / ') || out.split('\n').slice(-1)[0];
 }
 
+/** 以入庫的 .clasp.template.json 為底寫設定：rootDir=dist 這類政策不會被 create-script 的預設值蓋掉 */
+function writeClaspJson(obj) {
+  const tplPath = join(GAS, '.clasp.template.json');
+  const base = existsSync(tplPath) ? JSON.parse(readFileSync(tplPath, 'utf8')) : { rootDir: 'dist', scriptExtensions: ['.gs'] };
+  writeFileSync(join(GAS, '.clasp.json'), JSON.stringify({ ...base, ...obj }, null, 2) + '\n');
+  return join(GAS, '.clasp.json');
+}
+
 function readClaspJson() {
   const p = join(GAS, '.clasp.json');
   return existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null;
@@ -276,6 +284,9 @@ async function main() {
     const out = clasp(['create-script', '--title', TITLE, '--type', 'standalone']);
     cfg = readClaspJson();
     if (!cfg?.scriptId) throw new Error('建立後仍讀不到 .clasp.json：' + out);
+    writeClaspJson(cfg);          // clasp 預設 rootDir 是「.」→ 用入庫 template 蓋回（雲端只該收到 gas/dist 的產物）
+    cfg = readClaspJson();
+    if (cfg.rootDir !== 'dist') throw new Error('rootDir 沒被套用（實得 ' + cfg.rootDir + '）→ 會把 .ts 推到雲端');
     log('  scriptId = ' + cfg.scriptId);
   } else {
     log('→ 沿用既有專案 ' + cfg.scriptId);

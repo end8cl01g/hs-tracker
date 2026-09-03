@@ -252,3 +252,15 @@ test('關通道要重試到看到 no-setup-token（版本固化是非同步的�
   assert.match(src, /close-bootstrap-channel-retry/, '探針失敗時要重發版本');
   assert.match(src, /for \(let i = 0; i < 5 && !channelClosed; i\+\+\)/, '要有重試迴圈（實測 @12 才删檔仍回報舊版本）');
 });
+
+test('gas/.clasp.template.json 是入庫的政策來源（CI 上沒有 .clasp.json 也要能驗 rootDir）', () => {
+  const tpl = JSON.parse(readFileSync(join(ROOT, 'gas', '.clasp.template.json'), 'utf8'));
+  assert.equal(tpl.rootDir, 'dist', 'template 的 rootDir 必須是 dist');
+  assert.ok(!('scriptId' in tpl), 'template 不准含 scriptId（那是你專案的寫入座標）');
+  const tracked = execFileSync('git', ['ls-files', '--', 'gas/.clasp.template.json'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  assert.equal(tracked, 'gas/.clasp.template.json', 'template 必須入庫，否則 CI 讀不到就會 ENOENT（實測踩過）');
+  const ignored = execFileSync('git', ['check-ignore', '-q', 'gas/.clasp.json'], { cwd: ROOT, encoding: 'utf8' });   // 逃不出非零代表沒 ignore？git 用 exit code 表達
+  assert.equal(ignored.trim(), '', 'gas/.clasp.json 應被 gitignore');
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  assert.match(src, /writeClaspJson\(cfg\)/, 'create-script 之後要用 template 蓋回 rootDir（clasp 預設寫「.」）');
+});
