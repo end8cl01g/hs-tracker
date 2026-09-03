@@ -272,3 +272,14 @@ test('deps.mjs 不只裝套件，也會補齊產物（CI 上 check 跑在 build 
   assert.match(src, /need\('gas\/dist\/Code\.gs'/, '缺 GAS 產物時要自己打一份');
   assert.match(src, /npx rollup -c/, '要直接叫 rollup，不要用 npm run build（會遞迴回 deps.mjs）');
 });
+
+test('CI 的「外部 CDN」檢查要掃 URL、掃檔要涵蓋 manifest（實測：掃單字會被註解誤判，紅了整個 Actions）', () => {
+  const y = readFileSync(join(ROOT, '.github', 'workflows', 'deploy.yml'), 'utf8');
+  const cdn = (y.match(/grep -rqE[^\n]*/g) || []).join('\n') + (y.match(/grep -rq "[^"]*cdnjs[^"]*"[^\n]*/g) || []).join('\n');
+  assert.ok(cdn, 'CI 裡要有 CDN 檢查');
+  assert.match(cdn, /https\?:\/\/\(cdnjs/, '必須掃 URL（https?://(cdnjs|…)）而不是掃單字');
+  assert.doesNotMatch(cdn, /grep -rq "cdnjs/, '不准再用「grep cdnjs|jsdelivr|unpkg」這種會打到註解的寫法');
+  assert.match(cdn, /manifest\.json/, 'manifest 也要掃（外部字体/資源最常藏在那）');
+  const chk = readFileSync(join(ROOT, 'scripts', 'check.mjs'), 'utf8');
+  assert.match(chk, /stripComments/, '本地 check 剝註解後再掃（兩邊都要準）');
+});
