@@ -23,6 +23,7 @@
     "ts:loose": "tsc -p tsconfig.json --outDir build/ts --noEmit false --module commonjs --moduleResolution node10"
   },
   "devDependencies": {
+    "@google/clasp": "^3.4.1",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-terser": "^1.0.0",
     "@rollup/plugin-typescript": "^12.3.0",

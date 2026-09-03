@@ -182,6 +182,20 @@ pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(b
   T((read('index.html').match(/<script src="app\.js"/g) || []).length === 1, 'index.html 只載入一支 app.js', '又回到多支 <script> 相依載入順序的老路');
 }
 
+// 18) 憑證「焊死」的代價要被我盯住：.deploy/.clasprc.json = Google 長期授權，只能 0600、只能被 ignore
+{
+  const auth = join(ROOT, '.deploy', '.clasprc.json');
+  const gi = read('.gitignore');
+  T(/^\.deploy\//m.test(gi), '.gitignore 蓋住整個 .deploy/', '.deploy/ 沒被 ignore → 密鑰與憑證會被 commit 進 public repo');
+  if (existsSync(auth)) {
+    const mode = statSync(auth).mode & 0o777;
+    T(mode === 0o600, `.deploy/.clasprc.json 權限 0600（實得 ${mode.toString(8)}）`, '憑證檔權限太寬：同容器其他程序可讀');
+    T(/myaccount\.google\.com\/permissions/.test(read('README.md')), '憑證焊在 repo 內時，README 必須寫明撤回步驟', '有 .deploy/.clasprc.json 卻沒文件：以後沒人知道這份授權怎麼收回去');
+  } else {
+    T(true, '憑證未落在 repo 內（放 .cache/clasp/ 那种蒸发式位置也可以）', '');
+  }
+}
+
 console.log('靜態閉環檢查');
 for (const l of pass) console.log('  ✓ ' + l);
 for (const l of warn) console.log('  ! ' + l);

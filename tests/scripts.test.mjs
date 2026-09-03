@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname, basename } from 'node:path';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const run = (cmd, args, env = {}) => {
@@ -125,12 +125,26 @@ test('bootstrap 設計：密鑰本端產生、可重試、以 pull 覆核（回�
   assert.match(src, /waitUntilReachable\(execUrl, RESUME \? 60 : 12\)/, 'resume 要給較長的等待');
 });
 
-test('憑證與 clasp 安裝位置都走 .cache（不入 snapshot），且缺 clasp 時有明確錯誤', () => {
+test('憑證可「焊」在 .deploy/（gitignore 內）但必須 0600，且 clasp 走 devDependencies', () => {
   const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
-  assert.match(src, /\/home\/user\/\.cache\/clasp\/\.clasprc\.json/);
-  assert.match(src, /\/home\/user\/\.cache\/clasp-tools\/node_modules\/.bin\/clasp/);
+  assert.match(src, /join\(OUT, '\.clasprc\.json'\)/, 'AUTH 要優先認得 .deploy/.clasprc.json（重啟後不用重貼）');
+  assert.match(src, /\/home\/user\/\.cache\/clasp\/\.clasprc\.json/, '仍保留 .cache 當備援（有人不想把它留在工作區）');
+  assert.match(src, /node_modules', '\.bin', 'clasp'/, 'clasp 要能在 node_modules/.bin 找到（已是 devDependency）');
   assert.match(src, /clasp 未授權（憑證檔：' \+ AUTH/, '未授權時要說出用的是哪個憑證檔');
-  assert.ok(!/\.clasprc\.json['"]?\s*\)\s*;/.test(readFileSync(join(ROOT, '.gitignore'), 'utf8')) || true);
+  assert.match(src, /安全註記：該檔=你的 Google 長期授權/, '把憑證留在工作區就必須同時寫明風險與撤回方式');
+
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  assert.ok(pkg.devDependencies['@google/clasp'], 'clasp 沒入 devDependencies → 容器重啟後又得手動 npm i');
+  assert.ok(readFileSync(join(ROOT, 'scripts', 'deps.mjs'), 'utf8').includes("'@google/clasp'"), 'deps.mjs 要會自癒 clasp');
+  assert.ok(readFileSync(join(ROOT, '.gitignore'), 'utf8').includes('.deploy/'), '.deploy/ 必須整體 gitignore');
+
+  const tracked = execFileSync('git', ['ls-files', '--', '.deploy', '*.clasprc.json'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  assert.equal(tracked, '', '憑證／密鑰檔被 git 追蹤了：' + tracked);
+  const auth = join(ROOT, '.deploy', '.clasprc.json');
+  if (existsSync(auth)) {
+    const mode = statSync(auth).mode & 0o777;
+    assert.equal(mode, 0o600, `.deploy/.clasprc.json 權限必須 0600（實得 ${mode.toString(8)}）`);
+  }
 });
 
 test('gas/.claspignore 擋掉 clasp pull 產生同名的 .js（否則下次 push 就是重複定義）', () => {

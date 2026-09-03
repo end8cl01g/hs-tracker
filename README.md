@@ -8,6 +8,23 @@
 
 ---
 
+## 部署憑證放哪裡（「焊死」與「蒸发」兩種）
+
+```bash
+# A. 焊死在工作區（跨容器重啟不用重貼；本 repo 預設優先讀這裡）
+cp ~/.clasprc.json .deploy/.clasprc.json && chmod 600 .deploy/.clasprc.json
+
+# B. 蒸发式（重啟就消失，最安全，但每次部署都要重貼）
+mkdir -p /home/user/.cache/clasp && cp ~/.clasprc.json /home/user/.cache/clasp/.clasprc.json
+```
+
+`scripts/deploy-gas.mjs` 的搜尋順序是：`$clasp_config_auth` → `$CLASP_AUTH` → `.deploy/.clasprc.json` → `/home/user/.cache/clasp/.clasprc.json` → `/tmp/clasp/.clasprc.json`。
+`clasp` 本體已列進 `devDependencies`，`scripts/deps.mjs` 會在缺件時自己 `npm ci`，所以容器重啟後 `npm run gas:push` 一條就夠。
+
+**代價要講明白**：`.deploy/.clasprc.json` 是你的 Google 長期授權（refresh token），檔權限被 `npm run check` 硬性要求 0600、且 `.deploy/` 整體在 `.gitignore` 裡——但它仍然留在工作區快照中，**拿到這個工作區等於拿到你帳號的 Sheets/Drive 寫入權**。要收回：
+1. `shred -u .deploy/.clasprc.json`（或 `rm`）；
+2. 到 <https://myaccount.google.com/permissions> 把 “Google Apps Script API” / clasp 的授權撤掉（這樣舊 token 連同任何外洩副本一起作廢）。
+
 ## 源碼是 TypeScript，雲端/網頁只吃 Rollup 產物
 
 | 什麼 | 源碼 | 打包 | 產物（唯一被部署的東西） |

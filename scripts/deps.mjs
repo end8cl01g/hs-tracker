@@ -10,7 +10,7 @@ const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 const req = createRequire(join(ROOT, 'tests', 'x.js'));
 // TS + Rollup 遷移之後，光有 sql.js 不夠：容器重啟會清掉 node_modules（快照不含它），
 // 少任何一個工具鏈成员，後續 `tsc`/`rollup` 就是 "command not found"，錯誤還會報在别處。
-const NEEDED = ['sql.js', 'typescript', 'rollup', '@rollup/plugin-typescript', '@rollup/plugin-terser', '@rollup/plugin-node-resolve', 'tslib'];
+const NEEDED = ['sql.js', 'typescript', 'rollup', '@rollup/plugin-typescript', '@rollup/plugin-terser', '@rollup/plugin-node-resolve', 'tslib', '@google/clasp'];
 const missing = NEEDED.filter((m) => { try { req.resolve(m + '/package.json'); return false; } catch { try { req.resolve(m); return false; } catch { return true; } } });
 if (!missing.length) { console.log('· 依賴就緒（' + NEEDED.length + ' 個套件）'); process.exit(0); }
 console.log('· 缺工具鏈：' + missing.join(', ') + ' → 裝依賴（npm ci / npm install）');

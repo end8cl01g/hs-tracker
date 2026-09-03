@@ -25,8 +25,10 @@ const GAS = join(ROOT, 'gas');
 const GAS_DIST = join(GAS, 'dist');            // clasp 的 rootDir：源碼是 gas/src/*.ts，雲端只吃打包產物
 const BOOTSTRAP = join(GAS_DIST, 'Bootstrap.gs');  // 一次性通道檔（用畢即刪；放 dist 才會被 push）
 const OUT = join(ROOT, '.deploy');
-const AUTH = [process.env.clasp_config_auth, process.env.CLASP_AUTH, '/home/user/.cache/clasp/.clasprc.json', '/tmp/clasp/.clasprc.json']
-  .find((p) => p && existsSync(p)) || '/home/user/.cache/clasp/.clasprc.json';
+// 憑證位置（依優先序）：環境變數 → repo 內 .deploy/.clasprc.json（已 gitignore，但會留在工作區快照＝「焊死」，
+// 容器重啟不再需要重貼）→ .cache／/tmp（重啟即蒸发，留作備援）。
+const AUTH = [process.env.clasp_config_auth, process.env.CLASP_AUTH, join(OUT, '.clasprc.json'), '/home/user/.cache/clasp/.clasprc.json', '/tmp/clasp/.clasprc.json']
+  .find((p) => p && existsSync(p)) || join(OUT, '.clasprc.json');
 const TITLE = process.env.GAS_TITLE || 'HS Tracker Backend';
 const YES = process.argv.includes('--yes');
 const RESUME = process.argv.includes('--resume');
@@ -34,7 +36,8 @@ const DESTROY = process.argv.includes('--destroy');
 process.env.clasp_config_auth = AUTH;
 
 // clasp 常不在 PATH（全域 npm 目錄不可寫）→ 依序找本地安裝處
-const CLASP_BIN = process.env.CLASP_BIN || ['/home/user/.cache/clasp-tools/node_modules/.bin/clasp', '/tmp/clasp-tools/node_modules/.bin/clasp'].find((p) => existsSync(p)) || 'clasp';
+// clasp 已是 devDependency（npm ci 就會有）→ 先找 node_modules，再找以前那種 .cache 自裝位置
+const CLASP_BIN = process.env.CLASP_BIN || [join(ROOT, 'node_modules', '.bin', 'clasp'), '/home/user/.cache/clasp-tools/node_modules/.bin/clasp', '/tmp/clasp-tools/node_modules/.bin/clasp'].find((p) => existsSync(p)) || 'clasp';
 
 const log = (...a) => console.log(...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -212,8 +215,10 @@ function preflight() {
   if (!missing.length) return;
   throw new Error([
     ...missing,
-    '  → 裝：mkdir -p /home/user/.cache/clasp-tools && cd /home/user/.cache/clasp-tools && npm i @google/clasp',
-    '  → 憑證：把 .clasprc.json 內容寫進 /home/user/.cache/clasp/.clasprc.json（0600，不進 repo、不進快照，重啟即蒸发）',
+    '  → clasp：已在 devDependencies → npm ci（或 npx @google/clasp）',
+    `  → 憑證：把 .clasprc.json 寫進 ${join('.deploy', '.clasprc.json')} 並 chmod 600（.deploy/ 已 gitignore；這位置會留在工作區快照，重啟不用重貼）`,
+    `  → 安全註記：該檔=你的 Google 長期授權，Repo 內任何人都能看到工作區；要撤回就刪檔或在 myaccount.google.com/permissions 撤銷 app 授權`,
+    '  → 不焊死的話：改放 /home/user/.cache/clasp/.clasprc.json（重啟即蒸发）',
     '  → 或直接指定：CLASP_BIN=/路徑/clasp CLASP_AUTH=/路徑/.clasprc.json node scripts/deploy-gas.mjs --yes',
   ].join('\n'));
 }
