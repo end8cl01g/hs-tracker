@@ -69,17 +69,29 @@ node scripts/deploy-gas.mjs              # 只預覽，不碰你帳號
 node scripts/deploy-gas.mjs --yes        # 建專案 → push → 建部署 → bootstrap 設密鑰＋建表 → 刪 token → 再 push
 ```
 
-**兩次無法 headless 的一次性核准**（本輪實測確定，不是推測）：
+**兩次無法 headless 的一次性核准**（皆已實測，不是推測）：
 1. Web App 訪問權限：Apps Script REST 的 `DeploymentConfig` 沒有 access 欄位，`appsscript.json` 的
-   `webapp.access` 也只影響編輯器建的部署 → 要在 Deploy ▸ Manage deployments 把 *Who has access* 設成 **Anyone**。
-2. Scope 核准：`oauthScopes` 之後必須本人在編輯器 Run 一次（Review Permissions ▸ Advanced ▸ Allow），
-   否則 `SpreadsheetApp.create` 回 `You do not have permission…Required permissions: …/spreadsheets`。
-   沒核准時 `deploy-gas.mjs` 會直接認出來並印出點選路徑，不會空轉重試。
-   `bootstrap` 帶 `force` 且密鑰由腳本自己產生，所以**重跑同一條命令是安全的**（不會把密鑰弄丟）。
+   `webapp.access` 也只影響編輯器建的部署 → 要在 Deploy ▸ Manage deployments 把 *Who has access* 設成 **Anyone**（已完成）。
+2. Scope 首次核准：`appsscript.json` **不要宣告 `oauthScopes`**（宣告了就會蓋掉 Google 的自動推斷，換代碼時必炸；
+   `npm run check` 會紅燈擋下），改由 Google 依代碼自動推。但自動推斷出來的 scope 仍要本人核准一次：
+   編輯器 ▸ Run ▸ `doctor_` ▸ Review Permissions ▸ Advanced ▸ Allow。沒核准時 `SpreadsheetApp.create` 回
+   `You do not have permission…Required permissions: …/spreadsheets`；`deploy-gas.mjs` 認得這個訊息，會直接印出
+   點選路徑而不是空轉重試。`bootstrap` 帶 `force`、密鑰由腳本產生，所以**重跑同一條命令是安全的**。
+   （實測也證明 headless 繞不過去：Apps Script Execution API `projects/run` 只回 HTML 權限頁。）
 
-其餘都自動化了：腳本把剩下的都自動化掉：它臨時寫一份 `gas/Bootstrap.gs`（一次性
-`SETUP_TOKEN`，已 gitignore、不進 public repo）→ push → 用 `action=bootstrap` 換回 64 字元密鑰
-→ **立刻刪掉 Bootstrap.gs 再 push**，設定通道就此關閉。之後 `bootstrap` 一律回 `already-initialized`。
+其餘都自動化：腳本臨時寫一份 `gas/Bootstrap.gs`（一次性 `SETUP_TOKEN`，已 gitignore、不進 public repo）
+→ push → 用 `action=bootstrap` 換回 64 字元密鑰（**送出前先寫進 `.deploy/gas.json`**，避免雲端已收下、
+本機卻弄丟）→ 刪掉 `Bootstrap.gs`、push、**再用 Apps Script content API 覆寫檔案清單**發新版本。
+最後一步是必要的：`clasp push` 只新增／更新，**不會刪除本機已移除的雲端檔案**（實測過：只 push 的話
+`bootstrap` 仍回 `bad-setup-token`）。通道關掉之後 `bootstrap` 一律回 `no-setup-token`。
+
+**免憑證健診**（沙箱沒 clasp／沒 token 也能跑，CI 或手機上都行）：
+
+```bash
+npm run verify:gas          # 端點送達／密鑰可用／表格就緒／通道已關／錯密鑰被拒
+npm run verify:gas -- --write   # 再加一次「寫入一列 → 別台裝置讀得回」的真往返
+```
+
 
 把印出來的 Web App URL 與密鑰貼進 App 設定頁 → 按「📡 測試連線」→ 再按「🔄 立即同步」。
 （兩者也會存進 `.deploy/gas.json`，該目錄已 gitignore；手動方式仍可用：GAS 編輯器跑 `bootstrapSecret_()`。）

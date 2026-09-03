@@ -181,3 +181,23 @@ test('gas-verify.mjs 是「無憑證」的黑-box 健診，且包含通道是否
   assert.match(src, /--write/, '真實往返寫入要用旗標明確開啟');
   assert.match(src, /process\.exit\(failed\.length \? 1 : 0\)/, '有不合格就要非零退出（CI 才能擋）');
 });
+
+test('密鑰要在 bootstrap 之前就落盤（否則中途失敗會造成雲端／本機對不上）', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  const save = src.indexOf("saveState({ secret, sheets_ready: false, pending: 'bootstrap' })");
+  const boot = src.indexOf('await bootstrapAndVerify(');
+  assert.ok(save > 0, '少了「bootstrap 前先 saveState(secret)」');
+  assert.ok(boot > 0 && save < boot, '落盤必須在送出密鑰之前');
+  assert.match(src, /main\(\)\.catch[\s\S]{0,220}saveState\(\{ pending: 'incomplete' \}\)/, '中止時要把 pending 寫進去，讓下次接續看得見');
+});
+
+test('關通道不能只靠 clasp push（它不會刪除雲端舊檔）', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  assert.match(src, /async function deleteCloudFiles\(/, '少了 content API 補刀');
+  assert.match(src, /script\.googleapis\.com\/v1\/projects\//, '要用 Apps Script REST 覆寫檔案清單');
+  const del = src.indexOf('await deleteCloudFiles(');
+  const probe = src.indexOf("action: 'bootstrap', setup_token: token, secret }");
+  const redeploy = src.indexOf("create-deployment', '-i', deploymentId, '-d', 'close-bootstrap-channel'");
+  assert.ok(del > 0 && probe > del && redeploy > 0 && redeploy < probe, '順序必須：移除檔案 → 發新版本 → 才驗通道');
+  assert.match(src, /oauth2\.googleapis\.com\/token/, 'access token 要自己換（不依賴 clasp 內部）');
+});

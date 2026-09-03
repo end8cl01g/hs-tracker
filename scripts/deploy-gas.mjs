@@ -157,6 +157,36 @@ async function bootstrapAndVerify(execUrl, token, secret) {
   throw new Error('bootstrap 送出了，但用該密鑰 pull 仍失敗：' + detail);
 }
 
+/** 用 clasp 的憑證換一個 short-lived access token（不依賴 clasp 內部實作）。 */
+async function mintAccessToken() {
+  const c = JSON.parse(readFileSync(AUTH, 'utf8')).tokens.default;
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: c.client_id, client_secret: c.client_secret, refresh_token: c.refresh_token, grant_type: 'refresh_token' }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!j.access_token) throw new Error('換 access token 失敗：' + JSON.stringify(j).slice(0, 200));
+  return j.access_token;
+}
+
+/** clasp push 只「新增／更新」，不會刪除本機已移除的檔案——
+ *  所以要把雲端某个檔案真的拿掉（例如關閉一次性通道）必須走 content API 覆寫整份檔案清單。
+ *  實測：rm Bootstrap.gs + push 之後 bootstrap 仍回 bad-setup-token（舊檔案還在），必須這裡補一刀。 */
+async function deleteCloudFiles(scriptId, names) {
+  const tok = await mintAccessToken();
+  const via = (path, init = {}) => fetch(`https://script.googleapis.com/v1/projects/${scriptId}${path}`, {
+    ...init, headers: { Authorization: `Bearer ${tok}`, 'content-type': 'application/json' },
+  });
+  const cur = await (await via('/content')).json();
+  const drop = new Set(names);
+  const keep = (cur.files || []).filter((f) => !drop.has(f.name.replace(/\.gs$/, '')));
+  if (keep.length === (cur.files || []).length) return { removed: [], total: (cur.files || []).length };
+  const res = await via('/content', { method: 'PUT', body: JSON.stringify({ files: keep.map((f) => ({ name: f.name, source: f.source, type: f.type })) }) });
+  if (!res.ok) throw new Error('覆寫雲端檔案清單失敗 HTTP ' + res.status + ' ' + (await res.text()).slice(0, 160));
+  return { removed: (cur.files || []).map((f) => f.name).filter((n) => drop.has(n.replace(/\.gs$/, ''))), total: keep.length };
+}
+
 function saveState(extra) {
   mkdirSync(OUT, { recursive: true });
   const p = join(OUT, 'gas.json');
@@ -266,6 +296,9 @@ async function main() {
   log(`  ✓ HTTP ${ping0.status} ${JSON.stringify(ping0.json).slice(0, 90)}`);
 
   log('→ bootstrap（送我們自己產生的密鑰）＋ pull 覆核');
+  // 先落盤再送出：雲端可能已收下新密鑰、腳本卻在下一步（建表／核准）才失敗，
+  // 那时記憶體裡的 secret 一丟，雲端與 .deploy/gas.json 就會對不上（實測踩過：pull 回 unauthorized）。
+  saveState({ secret, sheets_ready: false, pending: 'bootstrap' });
   const boot = await bootstrapAndVerify(execUrl, token, secret);
   log(`  ✓ 覆核通過（第 ${boot.verified ? boot.via : '?'} 次 pull）`);
   if (boot.sheetsReady === false) {
@@ -274,9 +307,13 @@ async function main() {
     log('   ' + JSON.stringify(st.json ?? st.text.slice(0, 120)));
   }
 
-  log('→ 關閉設定通道（刪 Bootstrap.gs 再 push）');
+  log('→ 關閉設定通道（刪本機 Bootstrap.gs → push → 用 content API 真的移除雲端那份 → 發新版本）');
   rmSync(join(GAS, 'Bootstrap.gs'), { force: true });
   log('  ' + push());
+  const del = await deleteCloudFiles(cfg.scriptId, ['Bootstrap']);
+  log('  雲端已移除：' + (del.removed.join(', ') || '（本來就沒有）') + `，剩 ${del.total} 檔`);
+  log('  ' + clasp(['create-deployment', '-i', deploymentId, '-d', 'close-bootstrap-channel']).trim().split('\n').slice(-1)[0]);
+  await sleep(6000);
   const closed = await postJson(execUrl, { action: 'bootstrap', setup_token: token, secret });
   log('  通道狀態：' + JSON.stringify(closed.json ?? '（回應非 JSON）'));
   if (closed.json?.ok) throw new Error('刪掉 Bootstrap.gs 後 bootstrap 仍可設定——通道沒關住');
@@ -292,4 +329,8 @@ async function main() {
 
 // 只有「直接執行」時才跑：被測試 import 時不能有副作用（會把 console 打進 node:test 的輸出流）
 const INVOKED_DIRECTLY = process.argv[1] && process.argv[1].endsWith('deploy-gas.mjs');
-if (INVOKED_DIRECTLY) main().catch((e) => { console.error('✗ ' + e.message); process.exit(1); });
+if (INVOKED_DIRECTLY) main().catch((e) => {
+  try { saveState({ pending: 'incomplete' }); } catch { /* 沒有 state 可寫也別把錯誤吃掉 */ }
+  console.error('✗ ' + e.message);
+  process.exit(1);
+});
