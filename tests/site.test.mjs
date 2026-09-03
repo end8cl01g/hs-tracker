@@ -96,3 +96,36 @@ test('沒有殘留的 YOUR_USERNAME 佔位（佈署前必查）', () => {
   const files = ['index.html', 'manifest.json', 'README.md'].filter((f) => existsSync(join(ROOT, f)));
   for (const f of files) assert.ok(!/YOUR_USERNAME(?!\.github\.io\/hs-tracker\/data)/.test(readFileSync(join(ROOT, f), 'utf8')), `${f} 有未替換佔位`);
 });
+
+test('dist/app.js（真正上線的那支 bundle）能被執行，且各命名空間都掛得上來', async () => {
+  const vm = await import('node:vm');
+  const src = await (await get('/app.js')).text();
+  assert.ok(src.length > 20000, `bundle 太小：${src.length} bytes（rollup 是不是把東西搖掉了？）`);
+  const el = () => ({ style: {}, classList: { add() {}, remove() {}, toggle() {}, contains: () => false }, setAttribute() {}, addEventListener() {}, dataset: {} });
+  const ctx = {
+    console, JSON, Math, Date, Promise, Uint8Array, ArrayBuffer, TextEncoder, TextDecoder, Error, String, Number,
+    Object, Array, Set, Map, RegExp, Boolean, Symbol, parseInt, parseFloat, isNaN, isFinite, Infinity, NaN,
+    encodeURIComponent, decodeURIComponent, setTimeout, clearTimeout, setInterval: () => () => {}, clearInterval: () => {},
+    crypto: globalThis.crypto, structuredClone: globalThis.structuredClone, Blob: globalThis.Blob, URL, Response, Request, Headers, AbortController, AbortSignal,
+    indexedDB: undefined, fetch: async () => ({ ok: true, status: 200, json: async () => ({}), text: async () => '{}' }),
+    navigator: { onLine: true, storage: { persist: async () => true, persisted: async () => true } },
+    location: { href: 'https://example.test/', origin: 'https://example.test', reload() {} },
+    matchMedia: () => ({ matches: false }), addEventListener() {},
+    document: { addEventListener() {}, querySelectorAll: () => [], getElementById: () => null, createElement: el, body: el() },
+  };
+  ctx.window = ctx; ctx.globalThis = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(src, ctx, { filename: 'dist/app.js' });
+  // 名字由 bundle 自己列出來（避免測試與源碼不同步），但關鍵入口硬性點名；
+  // 再加一個數量下限，免得「模組被搖掉 → 清單也變小 → 測試真空過」。
+  const declared = [...new Set([...src.matchAll(/global\.([A-Za-z_$][\w$]*)\s*=/g)].map((m) => m[1]))];
+  assert.ok(declared.length >= 11, `bundle 只掛出 ${declared.length} 個命名空間：${declared.join(', ')}`);
+  for (const ns of ['DateUtils', 'GameCore', 'DBManager', 'DataLayer', 'GASProxy', 'SyncManager', 'GameEngine', 'UI', 'Animations', 'BackupManager', 'App']) {
+    assert.ok(declared.includes(ns) && ctx[ns], `bundle 裡 ${ns} 沒掛到 window（載入順序錯或 side-effect 被 tree-shake）`);
+  }
+  // 版號是 index.html 的內嵌腳本注入的（不是 bundle 內的字串），所以這裡驗 HTML 端
+  const html = await (await get('/index.html')).text();
+  const inj = /window\.BUILD\s*=\s*'([^']+)'/.exec(html);
+  assert.ok(inj, 'index.html 沒注入 window.BUILD → UI 上的版號會是 undefined');
+  assert.notEqual(inj[1], '__BUILD__', 'BUILD 沒被 build.mjs 替換（注入漏了 HTML 這一路，todo 1.8）');
+});

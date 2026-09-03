@@ -8,6 +8,34 @@
 
 ---
 
+## 源碼是 TypeScript，雲端/網頁只吃 Rollup 產物
+
+| 什麼 | 源碼 | 打包 | 產物（唯一被部署的東西） |
+|---|---|---|---|
+| 前端 PWA | `src/*.ts`（12 檔 + `sw.ts`） | `rollup -c` | `build/app.js`、`build/sw.js` → `dist/app.js`、`dist/sw.js` |
+| Apps Script 後端 | `gas/src/*.ts`（utils/config/sheets/code） | `rollup -c rollup.gas.config.mjs` | `gas/dist/Code.gs` + `gas/dist/appsscript.json`（clasp `rootDir=dist`） |
+
+```bash
+npm run typecheck   # 三個 tsconfig：前端 / sw（WebWorker lib）/ GAS（@types/google-apps-script）
+npm run build       # rollup + scripts/build.mjs（注入 build 代號、組 dist/）
+npm run gas:build   # tsc 型別閘門 → rollup 打包成一份 Code.gs
+npm run gas:push    # gas:build + node scripts/deploy-gas.mjs --yes（會改動你 Google 帳號）
+npm run dev         # rollup -w（改 src 即重打包；瀏覽器重新整理即見）
+```
+
+三個「不這樣做就會壞」的點（都是踩過的坑，`npm run check` 會擋）：
+1. **GAS 各檔必須合併成一份模組再打包**：Apps Script 的舊寫法是「多個 .gs 共用全域函式」。
+   若讓 rollup 把 `gas/src/*.ts` 當成個別 ESM 模組，它會把跨檔呼叫的 `allowRate_` 改名成 `allowRate_$1`
+   → 雲端直接 ReferenceError（實測）。`rollup.gas.config.mjs` 因此用虛擬模組把各檔串成一份。
+2. **GAS 產物不能包 IIFE，也要 `treeshake: false`**：Apps Script 只認 .gs 的「頂層函式」當入口
+   （`doGet`/`doPost`/選單函式）；包起來或搖一搖，部署上去就變成 648 bytes 的空殼。
+3. **`sw` 不能 minify**：`scripts/build.mjs` 要把 `'__BUILD__'` 換成本次 build 代號（todo 1.8 的快取失效機制），
+   壓縮後字串可能被改寫 → SW 永遠抓舊殼。`index.html` 的內嵌版號腳本走同一套注入。
+
+`tsconfig.json` 目前 `strict: false`（遷移當下的務實選擇：先讓 12 檔跑起來，再逐檔收緊）。
+即使如此，typecheck 已經抓到一個会上線的 bug：`doctor_()` 引用不存在的 `CONFIG_BASE_URL`
+（正解是 `configBaseUrl_()`）——那個函式正是「要去編輯器按核准」時要跑的，會在按下 Allow 前先 ReferenceError。
+
 ## 30 秒跑起來
 
 ```bash

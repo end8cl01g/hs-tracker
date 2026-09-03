@@ -25,7 +25,9 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      # 先跑靜態閉環檢查：檔名/引用/PRECACHE/GAS 紅線，這些錯不需要瀏覽器就能抓
+      # TS 遷移後的第一道閘：型別不過就別往下（實測過 typecheck 抓到 doctor_ 引用不存在的 CONFIG_BASE_URL）
+      - run: npm run typecheck
+      # 再跑靜態閉環檢查：檔名/引用/PRECACHE/GAS 紅線/打包完整性，這些錯不需要瀏覽器就能抓
       - run: npm run check
       - run: npm test
       - name: build dist（把 git sha 戳進 sw.js 的 cache key）
@@ -36,9 +38,10 @@ jobs:
         run: |
           test -f dist/index.html
           test -f dist/vendor/sql-wasm.wasm
-          test -f dist/js/build-info.js
+          test -f dist/app.js                 # 前端只有一支 bundle（rollup 產物）
           grep -q "${GITHUB_SHA}" dist/sw.js || { echo "✗ sw.js 沒含本次 build 代號 → 改版不會生效"; exit 1; }
-          ! grep -rq "cdnjs\|jsdelivr\|unpkg" dist/*.html dist/js dist/sw.js || { echo "✗ dist 含外部 CDN"; exit 1; }
+          grep -q "${GITHUB_SHA}" dist/index.html || { echo "✗ index.html 沒注入 build 代號 → UI 版號會騙人"; exit 1; }
+          ! grep -rq "cdnjs\|jsdelivr\|unpkg" dist/*.html dist/app.js dist/sw.js || { echo "✗ dist 含外部 CDN"; exit 1; }
           echo "dist ok：$(find dist -type f | wc -l) 檔 / $(du -sb dist | cut -f1) bytes"
       - uses: actions/upload-artifact@v4
         with:

@@ -193,7 +193,7 @@ test('密鑰要在 bootstrap 之前就落盤（否則中途失敗會造成雲端
   const boot = src.indexOf('await bootstrapAndVerify(');
   assert.ok(save > 0, '少了「bootstrap 前先 saveState(secret)」');
   assert.ok(boot > 0 && save < boot, '落盤必須在送出密鑰之前');
-  assert.match(src, /main\(\)\.catch[\s\S]{0,220}saveState\(\{ pending: 'incomplete' \}\)/, '中止時要把 pending 寫進去，讓下次接續看得見');
+  assert.match(src, /main\(\)\.catch[\s\S]{0,420}pending: prev\.pending \|\| 'incomplete'/, '中止時要把 pending 寫進去（但別蓋掉更精確的那個）');
 });
 
 test('關通道不能只靠 clasp push（它不會刪除雲端舊檔）', () => {
@@ -205,4 +205,27 @@ test('關通道不能只靠 clasp push（它不會刪除雲端舊檔）', () => 
   const redeploy = src.indexOf("create-deployment', '-i', deploymentId, '-d', 'close-bootstrap-channel'");
   assert.ok(del > 0 && probe > del && redeploy > 0 && redeploy < probe, '順序必須：移除檔案 → 發新版本 → 才驗通道');
   assert.match(src, /oauth2\.googleapis\.com\/token/, 'access token 要自己換（不依賴 clasp 內部）');
+});
+
+test('覆核失敗也要關掉一次性通道（否則設定面留在雲端）', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  const caught = src.indexOf('catch (e) { bootError = e; }');
+  const del = src.indexOf('await deleteCloudFiles(');
+  const rethrow = src.indexOf('if (bootError) {');
+  assert.ok(caught > 0 && del > caught, '關通道的步驟必須在 bootstrapAndVerify 的 catch 之後（失敗也照跑）');
+  assert.ok(rethrow > del, '先關通道，再把原本的錯誤丟出去（順序颠倒就等于沒關）');
+  assert.match(src, /pending: bootError\.message\.includes\('核准'\) \? 'scopes-consent'/, '卡在核准時要把 pending 寫成 scopes-consent');
+});
+
+test('clasp push 的冪等狀態（already up to date）不算失敗', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  assert.match(src, /already up to date/i, '沒認得「內容未變」這個合法輸出');
+  assert.match(src, /Skipping push[\s\S]{0,160}互動確認擋下/, '「Skipping push.」仍要當成錯誤（那是 --force 沒生效）');
+});
+
+test('關通道要重試到看到 no-setup-token（版本固化是非同步的）', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'deploy-gas.mjs'), 'utf8');
+  assert.match(src, /channelClosed = closed\.json\?\.error === 'no-setup-token'/, '只認 no-setup-token；already-initialized 代表 Bootstrap 還在');
+  assert.match(src, /close-bootstrap-channel-retry/, '探針失敗時要重發版本');
+  assert.match(src, /for \(let i = 0; i < 5 && !channelClosed; i\+\+\)/, '要有重試迴圈（實測 @12 才删檔仍回報舊版本）');
 });

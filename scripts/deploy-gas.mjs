@@ -53,9 +53,15 @@ const clasp = (args, opts = {}) => run(CLASP_BIN, ['-A', AUTH, ...args], { cwd: 
 // clasp 3.4.1：覆蓋 appsscript.json 需要互動確認，非 TTY 會回「Skipping push.」而不推任何檔
 function push() {
   const out = clasp(['push', '--force']).trim();
-  if (/Skipping push/.test(out) || !/Pushed (one file|\d+ files)/.test(out)) {
+  if (/Skipping push/.test(out)) {
+    throw new Error('clasp push 被互動確認擋下（非 TTY 必須 --force），輸出：' + JSON.stringify(out));
+  }
+  // 「Script is already up to date.」是合法狀態：gas:build 是決定性的，內容沒變就不會推檔
+  //（重跑部署時很常見）。以前只認 Pushed N files，結果冪等重跑被當成失敗。
+  if (!/Pushed (one file|\d+ files)/.test(out) && !/already up to date/i.test(out)) {
     throw new Error('clasp push 沒推任何檔案（雲端仍是舊碼），輸出：' + JSON.stringify(out));
   }
+  if (/already up to date/i.test(out)) return '· 雲端內容與本機產物一致（already up to date），跳過重推';
   return out.split('\n').filter((l) => /^Pushed|appsscript/.test(l)).join(' / ') || out.split('\n').slice(-1)[0];
 }
 
@@ -304,27 +310,49 @@ async function main() {
   // 先落盤再送出：雲端可能已收下新密鑰、腳本卻在下一步（建表／核准）才失敗，
   // 那时記憶體裡的 secret 一丟，雲端與 .deploy/gas.json 就會對不上（實測踩過：pull 回 unauthorized）。
   saveState({ secret, sheets_ready: false, pending: 'bootstrap' });
-  const boot = await bootstrapAndVerify(execUrl, token, secret);
-  log(`  ✓ 覆核通過（第 ${boot.verified ? boot.via : '?'} 次 pull）`);
-  if (boot.sheetsReady === false) {
-    log('  工作表沒建好 → 補一次 setup');
-    const st = await postJson(execUrl, { action: 'setup', device_id: 'deploy-probe', secret });
-    log('   ' + JSON.stringify(st.json ?? st.text.slice(0, 120)));
-  }
+  let boot = null;
+  let bootError = null;
+  try {
+    boot = await bootstrapAndVerify(execUrl, token, secret);
+    log(`  ✓ 覆核通過（第 ${boot.via} 次 pull）`);
+    if (boot.sheetsReady === false) {
+      log('  工作表沒建好 → 補一次 setup');
+      const st = await postJson(execUrl, { action: 'setup', device_id: 'deploy-probe', secret });
+      log('   ' + JSON.stringify(st.json ?? st.text.slice(0, 120)));
+    }
+  } catch (e) { bootError = e; }
 
+  // 關通道要在「覆核失敗」時照樣跑：密鑰其實已經生效，只差建表 needing 核准；
+  // 若跟著中止，一次性設定面就會被留在雲端（上兩輪每停在核准那步都出現這個狀態）。
   log('→ 關閉設定通道（刪 gas/dist/Bootstrap.gs → 重建 → content API 移除雲端那份 → 發新版本）');
   rmSync(BOOTSTRAP, { force: true });
-  run('npm', ['run', 'gas:build', '--silent'], { cwd: ROOT });   // 重BUILD 會把 appsscript.json 再拷一次，且 dist 內不會再有通道檔
+  run('npm', ['run', 'gas:build', '--silent'], { cwd: ROOT });
   log('  ' + push());
   const del = await deleteCloudFiles(cfg.scriptId, ['Bootstrap']);
   log('  雲端已移除：' + (del.removed.join(', ') || '（本來就沒有）') + `，剩 ${del.total} 檔`);
   log('  ' + clasp(['create-deployment', '-i', deploymentId, '-d', 'close-bootstrap-channel']).trim().split('\n').slice(-1)[0]);
   await sleep(6000);
-  const closed = await postJson(execUrl, { action: 'bootstrap', setup_token: token, secret });
-  log('  通道狀態：' + JSON.stringify(closed.json ?? '（回應非 JSON）'));
-  if (closed.json?.ok) throw new Error('刪掉 Bootstrap.gs 後 bootstrap 仍可設定——通道沒關住');
+  // Apps Script 的「版本」是非同步固化的：content 才刪掉就立刻建版本，可能仍沿用含 Bootstrap 的那份
+  // （實測：@12 之後探針還回 already-initialized）。所以建版本→探針要重試到真的看到 no-setup-token。
+  let closed = null;
+  let channelClosed = false;
+  for (let i = 0; i < 5 && !channelClosed; i++) {
+    if (i) {
+      log('  版本還沒跟上（第 ' + (i + 1) + ' 次）→ 重發一個版本');
+      clasp(['create-deployment', '-i', deploymentId, '-d', 'close-bootstrap-channel-retry' + i]).trim();
+      await sleep(6000);
+    }
+    closed = await postJson(execUrl, { action: 'bootstrap', setup_token: token, secret });
+    log('  通道狀態：' + JSON.stringify(closed.json ?? '（回應非 JSON）'));
+    channelClosed = closed.json?.error === 'no-setup-token';
+  }
+  if (!channelClosed) throw new Error('刪掉 Bootstrap.gs 後 bootstrap 仍能設定——通道沒關住（雲端可能留了舊版本，請手動刪 Bootstrap 檔後重跑）');
 
-  saveState({ secret, sheets_ready: true, pending: null, channel_closed: !closed.json?.ok });
+  if (bootError) {
+    saveState({ pending: bootError.message.includes('核准') ? 'scopes-consent' : 'bootstrap', sheets_ready: false, channel_closed: true });
+    throw bootError;
+  }
+  saveState({ secret, sheets_ready: boot.sheetsReady !== false, pending: null, channel_closed: true });
   log('\n✓ 後端就緒。把這兩項貼進 App 設定頁：');
   log('  GAS Web App URL ：' + execUrl);
   log('  同步密鑰        ：' + secret);
@@ -336,7 +364,8 @@ async function main() {
 // 只有「直接執行」時才跑：被測試 import 時不能有副作用（會把 console 打進 node:test 的輸出流）
 const INVOKED_DIRECTLY = process.argv[1] && process.argv[1].endsWith('deploy-gas.mjs');
 if (INVOKED_DIRECTLY) main().catch((e) => {
-  try { saveState({ pending: 'incomplete' }); } catch { /* 沒有 state 可寫也別把錯誤吃掉 */ }
+  // 不覆蓋更精確的 pending（例如 'scopes-consent'）：那才是下次接續要知道的事
+  try { const prev = existsSync(join(OUT, 'gas.json')) ? JSON.parse(readFileSync(join(OUT, 'gas.json'), 'utf8')) : {}; saveState({ pending: prev.pending || 'incomplete', last_error: e.message.split('\n')[0].slice(0, 160) }); } catch { /* 沒有 state 可寫也別把錯誤吃掉 */ }
   console.error('✗ ' + e.message);
   process.exit(1);
 });
