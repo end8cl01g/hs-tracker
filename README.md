@@ -58,6 +58,18 @@ public 殼：`setupDatabase()`（建／修三張表，冪等，順手觸發核�
 即使如此，typecheck 已經抓到一個会上線的 bug：`doctor_()` 引用不存在的 `CONFIG_BASE_URL`
 （正解是 `configBaseUrl_()`）——那個函式正是「要去編輯器按核准」時要跑的，會在按下 Allow 前先 ReferenceError。
 
+## 訓練計劃本身在哪裡
+
+**`PLAN.md` 是規範**（第三次審議定案：Phase 0 除鏽重建 6 週 ＋ 分層目標 必達/挑戰/延伸）。
+`data/workout.json`、`data/skills.json`、`data/badges.json` 是它的編譯結果，**不要手改**：
+
+```bash
+npm run plan          # 從 scripts/gen-plan.mjs 重新產生 data/*.json
+npm run plan:check    # 比對有沒有人手改過（CI/test 也會跑這條）
+```
+
+改計劃 = 改 `gen-plan.mjs` ＋ 同步 `PLAN.md`；兩邊不一致測試會紅（階段週數、標題、退階覆蓋率都被釘住）。
+
 ## 30 秒跑起來
 
 ```bash

@@ -20,7 +20,9 @@
     "gas:push": "npm run gas:build && node scripts/deploy-gas.mjs --yes",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.sw.json && tsc --noEmit -p gas/tsconfig.json",
     "dev": "rollup -c -w",
-    "ts:loose": "tsc -p tsconfig.json --outDir build/ts --noEmit false --module commonjs --moduleResolution node10"
+    "ts:loose": "tsc -p tsconfig.json --outDir build/ts --noEmit false --module commonjs --moduleResolution node10",
+    "plan": "node scripts/gen-plan.mjs",
+    "plan:check": "node scripts/gen-plan.mjs --check"
   },
   "devDependencies": {
     "@google/clasp": "^3.4.1",

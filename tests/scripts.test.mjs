@@ -296,3 +296,11 @@ test('deploy-gas 只改雲端代碼時能沿用密鑰，且 saveState 寫完就 
   assert.match(src, /#.*--keep-secret.*裝置不必重貼/s, '用法註解要寫明這開關省了什麼');
 });
 
+test('計劃產生器有 npm script，且 PLAN.md 被 README 指向（規範要能找到）', () => {
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  assert.equal(pkg.scripts.plan, 'node scripts/gen-plan.mjs', 'npm run plan 要能重新產生資料檔');
+  assert.equal(pkg.scripts['plan:check'], 'node scripts/gen-plan.mjs --check', '要有漂移檢查');
+  const readme = readFileSync(join(ROOT, 'README.md'), 'utf8');
+  assert.match(readme, /PLAN\.md/, 'README 要指向規範檔');
+  assert.match(readme, /不要手改/, '要寫明資料檔是編譯結果');
+});
