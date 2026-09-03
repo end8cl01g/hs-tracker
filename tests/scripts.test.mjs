@@ -325,3 +325,11 @@ test('`.deploy/*` 的 0600 由 scripts/secrets-mode.mjs 統一收緊，check 與
   assert.match(pkg, /node scripts\/secrets-mode\.mjs/, 'npm test 前要收緊一次，否則憑證權限紅燈會冒充功能缺陷');
   assert.match(pkg, /ts:loose/, 'npm test 前must重建 build/ts/*.js，否則測的是舊 JS（實測踩過）');
 });
+
+test('ship.sh 必須等「這次 push 的 SHA」的 CI，且線上 SW 版本不對就不準說成功', () => {
+  const sh = readFileSync(join(ROOT, 'scripts', 'ship.sh'), 'utf8');
+  assert.match(sh, /actions\/runs\?head_sha=\$FULL/, '要依 head_sha 過濾（查 per_page=1 會讀到上個 commit 的 success）');
+  assert.match(sh, /Actions 8 分鐘內沒跑完/, '逾時要 die，不能續跑到「✓ 完事」');
+  assert.ok(sh.includes('== *"$FULL"* ]] || die'), '驗收要比對線上 SW 版本 = 這次推的 SHA');
+  assert.match(sh, /dist\/build-info\.json/, '推之前要確認 dist 是用這次 HEAD 建的');
+});

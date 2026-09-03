@@ -45,7 +45,9 @@ say "本機檢查（check + test + build）—— 不通就不推"
 npm run --silent check | tail -1
 npm test 2>&1 | grep -E '^# (tests|pass|fail)'
 npm run --silent build | tail -2
-[[ "$DRY" == "1" ]] && { say "DRY=1，到此為止"; exit 0; }
+# dist/build-info.json 记的是建置時的 HEAD；不一致就是「推了舊 dist」（實測踩過：改完沒重建，線上少一支修正）
+BDIST=$(python3 -c 'import json;print(json.load(open("dist/build-info.json")).get("build",""))' 2>/dev/null || echo "")
+[[ "$BDIST" == "$(git rev-parse --short HEAD)"* ]] || die "dist 是 $BDIST 建的，但 HEAD 是 $(git rev-parse --short HEAD) → 先 npm run build 再推（ship.sh 已自動重建，這代表 build 沒跑成）"
 
 say "建 repo（已存在就沿用；免費版 Pages 只能 public）"
 CODE=$(curl -sS -o /tmp/ship-repo.json -w '%{http_code}' "${hdr[@]}" -X POST "$API/user/repos" \
@@ -79,21 +81,24 @@ PUSH_URL="https://x-access-token:${TOKEN}@github.com/${OWNER}/${REPO}.git"
 git push -q "$PUSH_URL" HEAD:refs/heads/main || die "push 失敗（token 需要 Contents:write）"
 git remote remove origin 2>/dev/null || true
 git remote add origin "https://github.com/${OWNER}/${REPO}.git"     # 遠端不存 token
-SHA=$(git rev-parse --short HEAD); say "已推送 main @ $SHA"
+FULL=$(git rev-parse HEAD); SHA="${FULL:0:7}"; say "已推送 main @ $SHA"
 
-say "等第一次 Actions 跑完（最多 5 分鐘）"
-URL=""
-for i in $(seq 1 30); do
+say "等這次 push 的 Actions 跑完（只認 head_sha=$SHA，最多 8 分鐘）"
+# 上一版的 bug：查的是 per_page=1「最新一次」run，push 後 CI 還沒排隊時會讀到上個 commit 的 success
+# → 立刻 break 並印「✓ 完事」，其實線上還是舊版（今天實測踩到，花了兩輪才發現）。
+ST=in_progress; CC=""; RUN=""
+for i in $(seq 1 48); do
   sleep 10
-  R=$(curl -sS "${hdr[@]}" "$API/repos/$OWNER/$REPO/actions/runs?per_page=1" | python3 -c '
+  R=$(curl -sS "${hdr[@]}" "$API/repos/$OWNER/$REPO/actions/runs?head_sha=$FULL&per_page=1" | python3 -c '
 import sys,json
 d=json.load(sys.stdin).get("workflow_runs",[])
-print((d[0]["status"], d[0].get("conclusion"), d[0]["html_url"]) if d else ("none","",""))' 2>/dev/null || echo "none  ")
+print((d[0]["status"], d[0].get("conclusion") or "", d[0]["html_url"]) if d else ("queued","","")' 2>/dev/null || echo "queued  ")
   read -r ST CC RUN <<<"$(echo "$R" | tr -d "(),'\"" | sed 's/  */ /g')"
   printf '  [%02d] %s %s\n' "$i" "$ST" "$CC"
   if [[ "$ST" == "completed" && "$CC" == "success" ]]; then break; fi
   if [[ "$ST" == "completed" ]]; then die "Actions 失敗 → $RUN"; fi
 done
+[[ "$ST" == "completed" && "$CC" == "success" ]] || die "Actions 8 分鐘內沒跑完（目前 $ST/$CC）→ 別信「上線成功」：$RUN"
 
 URL="https://$OWNER.github.io/$REPO/"
 say "驗收（三条都該 200／正確 header）"
@@ -102,6 +107,7 @@ for u in "manifest.json" "sw.js" "vendor/sql-wasm.wasm" "data/workout.json"; do
 done
 BUILD=$(curl -sS "$URL/sw.js" | grep -oE "VERSION = '[^']+'" | head -1)
 say "SW 版本：${BUILD:-<讀不到>}"
+[[ "$BUILD" == *"$FULL"* ]] || die "線上 SW 版本不是 $SHA（cache 還沒換或部署失敗）→ 這不算上線成功：$BUILD"
 echo
 echo "✓ 完事：$URL"
 echo "  手機開它 → 加到主畫面 → 設定頁貼 GAS Web App URL（先跑 scripts/deploy-gas.mjs）"
