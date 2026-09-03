@@ -146,14 +146,21 @@ test('scope 未核准時要認出來並給出編輯器核准路徑（而不是�
   assert.ok(!/JSON\.stringify\(\(r\.json \|\| r\.text \|\| ''\)\.toString\(\)/.test(src), '别再產生 [object Object] 這種錯誤訊息');
 });
 
-test('.githooks 在 git index 裡必須是可執行檔（否則 git 靜默忽略，閘門等於不存在）', () => {
-  const out = execFileSync('git', ['ls-files', '-s', '.githooks'], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n');
-  assert.equal(out.filter(Boolean).length, 2, 'pre-commit / post-checkout 都要入庫：' + out.join(' '));
-  for (const line of out.filter(Boolean)) {
-    const [mode,, , path] = line.split(/\s+/);
-    assert.equal(mode, '100755', `${path} 的模式是 ${mode}，git 會因為少了可執行位而跳過它`);
+test('.githooks 內容齊備且有自愈路徑（mode 位會被容器還原洗掉，硬閘門是 CI）', () => {
+  for (const f of ['pre-commit', 'post-checkout']) {
+    const p2 = join(ROOT, '.githooks', f);
+    assert.ok(existsSync(p2), `缺 .githooks/${f}`);
+    const body = readFileSync(p2, 'utf8');
+    assert.match(body, /^#!\/usr\/bin\/env bash/, `.githooks/${f} 沒 shebang`);
+    assert.match(body, /set -euo pipefail/, `.githooks/${f} 少了 set -e（失敗不會擋）`);
   }
-  assert.match(readFileSync(join(ROOT, 'package.json'), 'utf8'), /chmod \+x \.githooks/);
+  assert.match(readFileSync(join(ROOT, '.gitignore'), 'utf8'), /dist\//, 'dist/ 不該入庫');
+  // 可執行位不可靠（實測：容器重啟把 755 洗成 644，git 就靜默跳過鉤子）→ 必須有一條自我修復命令
+  assert.match(readFileSync(join(ROOT, 'package.json'), 'utf8'), /"hooks":\s*"chmod \+x \.githooks/);
+  // 真正的硬閘門在 CI：兩邊都要跑 check + test
+  const y = readFileSync(join(ROOT, '.github', 'workflows', 'deploy.yml'), 'utf8');
+  assert.match(y, /npm run check/);
+  assert.match(y, /npm test/);
 });
 
 test('clasp 或憑證不在時要給可照抄的重建指令（沙箱重啟必現這狀態）', () => {
@@ -162,4 +169,15 @@ test('clasp 或憑證不在時要給可照抄的重建指令（沙箱重啟必�
   assert.match(src, /if \(YES\) preflight\(\)/, '預覽模式不該被 preflight 擋（沒帳號也能看要做什麼）');
   assert.match(src, /憑證檔不存在/);
   assert.match(src, /CLASP_BIN=.*CLASP_AUTH=/s);
+});
+
+test('gas-verify.mjs 是「無憑證」的黑-box 健診，且包含通道是否關掉', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'gas-verify.mjs'), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1');  // 註解裡提到 clasp 不算
+  assert.ok(!/clasp|refresh_token|oauth2\.googleapis\.com/.test(code), '健診不該需要 clasp 或憑證（否則沙箱重啟就驗不了）');
+  for (const need of ['端點可匿名送達', '後端已設密鑰', 'bootstrap 通道已關閉', '密鑰可用（pull）', '雲端表格就緒（setup）', '錯密鑰被拒']) {
+    assert.ok(src.includes(need), '少了檢查：' + need);
+  }
+  assert.match(src, /--write/, '真實往返寫入要用旗標明確開啟');
+  assert.match(src, /process\.exit\(failed\.length \? 1 : 0\)/, '有不合格就要非零退出（CI 才能擋）');
 });
