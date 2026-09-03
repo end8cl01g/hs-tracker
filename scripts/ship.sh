@@ -90,9 +90,16 @@ ST=in_progress; CC=""; RUN=""
 for i in $(seq 1 48); do
   sleep 10
   R=$(curl -sS "${hdr[@]}" "$API/repos/$OWNER/$REPO/actions/runs?head_sha=$FULL&per_page=1" | python3 -c '
-import sys,json
-d=json.load(sys.stdin).get("workflow_runs",[])
-print((d[0]["status"], d[0].get("conclusion") or "", d[0]["html_url"]) if d else ("queued","","")' 2>/dev/null || echo "queued  ")
+import sys, json
+try:
+    d = json.load(sys.stdin).get("workflow_runs", [])
+except Exception as e:                      # API 422/403 或 HTML 錯誤頁都要看得見，別靜默當成 queued
+    print("api-error", type(e).__name__, "https://github.com"); raise SystemExit(0)
+if not d:
+    print("queued - https://github.com"); raise SystemExit(0)
+r = d[0]
+print(r["status"], r.get("conclusion") or "", r["html_url"])' || echo "api-error curl-failed https://github.com")
+  [[ "$ST" == api-error ]] && die "讀不到 CI 狀態（R=$R）→ 先修 API 權限/限流，別假裝在等 CI"
   read -r ST CC RUN <<<"$(echo "$R" | tr -d "(),'\"" | sed 's/  */ /g')"
   printf '  [%02d] %s %s\n' "$i" "$ST" "$CC"
   if [[ "$ST" == "completed" && "$CC" == "success" ]]; then break; fi
