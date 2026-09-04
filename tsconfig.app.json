@@ -37,7 +37,8 @@
     "src/game-engine.ts",
     "src/gas-proxy.ts",
     "src/sync-manager.ts",
-    "src/data-layer.ts"
+    "src/data-layer.ts",
+    "src/globals.d.ts"
   ],
   "exclude": [
     "src/sw.ts",
