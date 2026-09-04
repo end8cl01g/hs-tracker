@@ -18,11 +18,13 @@ import { ConstellationPerks } from './components/ConstellationPerks';
 import { QuestJournal } from './components/QuestJournal';
 import { CharacterStatsView } from './components/CharacterStatsView';
 import { SaveManagerView } from './components/SaveManagerView';
+import { SkyrimSettingsView } from './components/SkyrimSettingsView';
 import { SkyrimNotification } from './components/SkyrimNotification';
 import { normalizeHS, newHSState } from './domain/state';
 import { deriveSnapshot, applyQuestUpdate, applyProfileUpdate } from './domain/adapters';
 import { badgeDefs } from './domain/data';
 import { earnedBadges } from './domain/rules';
+import { loadConfig, startAutoSync, subscribeSync } from './services/syncService';
 import type { HSEmbedded } from './types';
 
 type Tab = 'perks' | 'quests' | 'character' | 'saves';
@@ -36,6 +38,8 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState<Tab>('quests');
   const [slots, setSlots] = useState<SaveSlot[]>(() => storageService.loadSlots());
   const [notification, setNotification] = useState<{ title: string; subtitle: string } | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
+  const [totalSyncs, setTotalSyncs] = useState<number>(() => loadConfig().totalSyncs);
 
   const snap = useMemo(() => deriveSnapshot(hs), [hs]);
   const prevLevelRef = useRef<number>(snap.stats.level);
@@ -58,6 +62,24 @@ export default function App() {
   useEffect(() => {
     storageService.saveCurrentState(snap.character, snap.quests);
   }, [hs, snap.character, snap.quests]);
+
+  /** 設定卷軸／雲端同步共用：直接落盤 + 回寫 App state（領域狀態的唯一寫入口之一） */
+  const applyHSDirect = useCallback((next: HSEmbedded) => {
+    const clean = normalizeHS(next);
+    storageService.writeHSRaw(clean);
+    setHS(clean);
+  }, []);
+
+  // GAS 雲端同步：狀態訂閱（徽章計數）+ 自動同步（上線／回前景／每 10 分鐘）
+  useEffect(() => {
+    const unsub = subscribeSync(() => setTotalSyncs(loadConfig().totalSyncs));
+    startAutoSync(
+      () => storageService.readHSRaw(),
+      (merged) => applyHSDirect(merged)
+    );
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 升級／降級通知（載入舊存檔時靜默同步 ref）
   useEffect(() => {
@@ -83,7 +105,7 @@ export default function App() {
     const statsMap = {
       total_xp: snap.stats.totalXP,
       total_sessions: snap.stats.totalSessions,
-      total_syncs: 0, // GAS 同步已隨舊環境捨棄；保留指標讓舊定義不壞
+      total_syncs: totalSyncs, // GAS 同步次數（syncService 維護）
       skills_unlocked: snap.stats.skillsUnlocked,
       level: snap.stats.level,
       streak_current: snap.stats.streak,
@@ -109,7 +131,7 @@ export default function App() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snap.stats.totalXP, snap.stats.totalSessions, snap.stats.skillsUnlocked, snap.stats.level, snap.stats.streak]);
+  }, [snap.stats.totalXP, snap.stats.totalSessions, snap.stats.skillsUnlocked, snap.stats.level, snap.stats.streak, totalSyncs]);
 
   const handleShowNotification = useCallback((title: string, subtitle: string) => {
     setNotification({ title, subtitle });
@@ -146,6 +168,7 @@ export default function App() {
         perkPoints={snap.character.perkPoints}
         onOpenStats={() => setCurrentTab('character')}
         onOpenSaves={() => setCurrentTab('saves')}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       {/* Main Tab Viewport with smooth Skyrim fade transitions */}
@@ -199,6 +222,15 @@ export default function App() {
 
       {/* Bottom Skyrim Status Bar (HP / MP / Stamina + Tab Switch) */}
       <SkyrimStatusBar character={snap.character} currentTab={currentTab} onTabChange={setCurrentTab} />
+
+      {/* 設定卷軸：雲端同步／課表開始日期／備份／診斷 */}
+      <SkyrimSettingsView
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        hs={hs}
+        onApplyHS={applyHSDirect}
+        onShowNotification={handleShowNotification}
+      />
 
       {/* Skyrim Announcement Banner */}
       {notification && (

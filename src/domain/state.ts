@@ -20,6 +20,18 @@ export function newHSState(today = todayISO()): HSEmbedded {
   };
 }
 
+/** logXP 防禦：只收「日期 → 非負整數」的合法條目 */
+function sanitizeLogXP(v: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!v || typeof v !== 'object') return out;
+  for (const [k, n] of Object.entries(v as Record<string, unknown>)) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && typeof n === 'number' && Number.isFinite(n) && n >= 0) {
+      out[k] = Math.round(n);
+    }
+  }
+  return out;
+}
+
 /** 防禦性修補：缺欄位補預設（載入舊存檔／部分損壞資料時不白屏） */
 export function normalizeHS(input: Partial<HSEmbedded> | null | undefined, today = todayISO()): HSEmbedded {
   const base = newHSState(today);
@@ -28,6 +40,7 @@ export function normalizeHS(input: Partial<HSEmbedded> | null | undefined, today
     v: 1,
     startedAt: typeof input.startedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input.startedAt) ? input.startedAt : base.startedAt,
     history: input.history && typeof input.history === 'object' ? input.history : {},
+    logXP: sanitizeLogXP(input.logXP),
     gateDone: Array.isArray(input.gateDone) ? input.gateDone : [],
     unlockedSkills: Array.isArray(input.unlockedSkills) ? input.unlockedSkills : [],
     badges: Array.isArray(input.badges) ? input.badges : [],

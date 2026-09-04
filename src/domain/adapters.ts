@@ -15,6 +15,8 @@ import {
   streaks,
   todayISO,
   addDays,
+  dayDiff,
+  isValidISODate,
   weekdayOf,
   phaseForDate,
   phaseForWeek,
@@ -69,6 +71,11 @@ export function computeStats(hs: HSEmbedded, today = todayISO()): DerivedStats {
   const dates = Object.keys(hs.history).filter((d) => (hs.history[d] || []).length > 0);
   let sessionXP = 0;
   for (const d of dates) {
+    if (hs.logXP && typeof hs.logXP[d] === 'number') {
+      // 打卡當下的 XP 快照優先：改自訂開始日期後歷史 XP 不會跟著課表重對映漂移
+      sessionXP += Number(hs.logXP[d] || 0);
+      continue;
+    }
     for (const item of exercisesForDate(hs, d)) {
       if (item) sessionXP += Number(item.ex.xp || 0);
     }
@@ -106,8 +113,14 @@ function objectivesFromExercises(date: string, dayKey: string, exercises: Exerci
       id,
       text: `${ex.name}（+${ex.xp} XP）${ex.detail ? ` · ${ex.detail}` : ''}`,
       completed: done.has(id),
+      xp: Number(ex.xp || 0),
     };
   });
+}
+
+/** 該日打卡的 XP 快照：已勾 objective 的 xp 加總（applyQuestUpdate 維護） */
+function logXPFromObjectives(objectives: QuestObjective[]): number {
+  return objectives.reduce((s, o) => s + (o.completed ? Number(o.xp || 0) : 0), 0);
 }
 
 /** 產生本週＋上週的訓練日任務（與舊 todayPlan 相同的 weekday 真相與 mapped 規則） */
@@ -266,6 +279,7 @@ export function applyQuestUpdate(hs: HSEmbedded, updater: (prev: Quest[]) => Que
   const next: HSEmbedded = {
     ...hs,
     history: { ...hs.history },
+    logXP: { ...(hs.logXP || {}) },
     gateDone: [...hs.gateDone],
     customQuests: hs.customQuests.map((q) => ({ ...q })),
     activeIds: [],
@@ -305,8 +319,14 @@ export function applyQuestUpdate(hs: HSEmbedded, updater: (prev: Quest[]) => Que
       const prevDay = prevQuests.find((p) => p.id === q.id);
       if (!prevDay || !sameObjectives(prevDay.objectives, q.objectives)) {
         const doneIds = q.objectives.filter((o) => o.completed).map((o) => o.id);
-        if (doneIds.length) next.history[date] = doneIds;
-        else delete next.history[date];
+        if (doneIds.length) {
+          next.history[date] = doneIds;
+          // 打卡當下把 XP 快照下來：之後即使自訂開始日期改變、課表重對映，該日 XP 也不變
+          next.logXP[date] = logXPFromObjectives(q.objectives);
+        } else {
+          delete next.history[date];
+          delete next.logXP[date];
+        }
       }
       continue;
     }
@@ -347,4 +367,49 @@ export function isRestDayToday(hs: HSEmbedded, today = todayISO()): boolean {
   const wd = weekdayOf(today);
   if (wd === null) return true;
   return (workoutData.rest_days ?? [0, 6]).map(Number).includes(wd);
+}
+
+/* ------------------------- 設定卷軸：課表開始日期 ------------------------- */
+
+export interface PlanStartInfo {
+  startedAt: string;
+  weekNumber: number;
+  phase: number;
+  phaseTitle: string;
+  phaseRange: [number, number] | null;
+  totalWeeks: number;
+  endDate: string; // 52 週計畫的最後一天
+}
+
+/** 由開始日期推導計畫資訊（設定卷軸顯示用） */
+export function planStartInfo(hs: HSEmbedded, today = todayISO()): PlanStartInfo {
+  const weekNumber = Math.max(0, Math.floor(dayDiff(hs.startedAt, today) / 7));
+  const phase = phaseForWeek(workoutData, weekNumber);
+  const phaseData = workoutData.phases[`phase${phase}`];
+  let totalWeeks = 0;
+  for (const k of Object.keys(workoutData.phases)) {
+    const r = workoutData.phases[k].weeks_range;
+    if (r && r[1] > totalWeeks) totalWeeks = r[1];
+  }
+  return {
+    startedAt: hs.startedAt,
+    weekNumber,
+    phase,
+    phaseTitle: phaseData?.title || '',
+    phaseRange: phaseData?.weeks_range ?? null,
+    totalWeeks,
+    endDate: addDays(hs.startedAt, totalWeeks * 7 - 1),
+  };
+}
+
+/**
+ * 設定自訂開始日期（課表錨點）。
+ * 週數→階段→菜單全部由此重推導；歷史 XP 有 logXP 快照保護，不隨重對映漂移。
+ * 回傳 null 表示日期不合法（格式錯／未來日期）。
+ */
+export function applyPlanStart(hs: HSEmbedded, dateISO: string, today = todayISO()): HSEmbedded | null {
+  if (!isValidISODate(dateISO)) return null;
+  if (dayDiff(dateISO, today) < 0) return null; // 未來日期不收
+  if (dateISO === hs.startedAt) return hs;
+  return { ...hs, startedAt: dateISO };
 }

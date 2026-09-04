@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, Volume2, VolumeX, Shield, Wand2, Moon } from 'lucide-react';
+import { Compass, Volume2, VolumeX, Settings, Shield, Wand2, Moon } from 'lucide-react';
 import { Quest } from '../types';
 import { skyrimAudio } from '../services/audioService';
 
@@ -7,6 +7,7 @@ interface SkyrimCompassProps {
   activeQuests: Quest[];
   onOpenStats: () => void;
   onOpenSaves: () => void;
+  onOpenSettings: () => void;
   perkPoints: number;
 }
 
@@ -14,6 +15,7 @@ export const SkyrimCompass: React.FC<SkyrimCompassProps> = ({
   activeQuests,
   onOpenStats,
   onOpenSaves,
+  onOpenSettings,
   perkPoints,
 }) => {
   const [heading, setHeading] = useState<number>(90); // default pointing East
@@ -60,6 +62,16 @@ export const SkyrimCompass: React.FC<SkyrimCompassProps> = ({
           >
             <div className="w-1.5 h-1.5 rounded-full bg-[#72ffff] animate-pulse shadow-[0_0_6px_#72ffff]"></div>
             <span>SAVES</span>
+          </button>
+
+          <button
+            id="btn-compass-settings"
+            onClick={onOpenSettings}
+            className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#111]/80 hover:bg-[#1f1f1f] border border-[#333] text-[#e0e0e0] text-[10px] tracking-[0.15em] transition-colors"
+            title="設定（雲端同步／課表開始日期／備份）"
+          >
+            <Settings className="w-3.5 h-3.5 text-[#c4a000]" />
+            <span>SET</span>
           </button>
 
           <button

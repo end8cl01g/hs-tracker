@@ -4,7 +4,7 @@
  * 但唯一真相是 character.hs（Press-to-Handstand 領域狀態）；
  * quests 只是推導結果，載入時一律由領域狀態重建。
  */
-import { CharacterStats, Quest, SaveSlot } from '../types';
+import { CharacterStats, Quest, SaveSlot, HSEmbedded } from '../types';
 import { deriveSnapshot, applyProfileUpdate } from '../domain/adapters';
 import { normalizeHS, newHSState } from '../domain/state';
 import { rustEngine } from './rustBridge';
@@ -49,6 +49,30 @@ export class HsStorageService {
       this.updateAutoSaveSlot(hs);
     } catch (e) {
       console.error('AutoSave failed:', e);
+    }
+  }
+
+  /** 直接讀原始領域狀態（同步服務用：不經 derive，帶 savedAt 供 LWW） */
+  public readHSRaw(): { hs: HSEmbedded; savedAt: number } {
+    try {
+      const raw = localStorage.getItem(CURRENT_STATE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return { hs: normalizeHS(parsed?.hs ?? parsed?.character?.hs), savedAt: Number(parsed?.savedAt) || 0 };
+      }
+    } catch (e) {
+      console.error('readHSRaw failed:', e);
+    }
+    return { hs: newHSState(), savedAt: 0 };
+  }
+
+  /** 直接寫原始領域狀態（同步服務用：雲端合併結果採用進本機，不等 React re-render） */
+  public writeHSRaw(hs: HSEmbedded) {
+    try {
+      const clean = normalizeHS(hs);
+      localStorage.setItem(CURRENT_STATE_KEY, JSON.stringify({ hs: clean, savedAt: Date.now() }));
+    } catch (e) {
+      console.error('writeHSRaw failed:', e);
     }
   }
 

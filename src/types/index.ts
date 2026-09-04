@@ -36,6 +36,7 @@ export interface QuestObjective {
   text: string;
   completed: boolean;
   optional?: boolean;
+  xp?: number; // 課表動作的 XP（打卡快照用）
 }
 
 export interface Quest {
@@ -82,8 +83,14 @@ export interface CharacterStats {
  */
 export interface HSEmbedded {
   v: number;
-  startedAt: string; // 'YYYY-MM-DD'，用於階段推導
+  startedAt: string; // 'YYYY-MM-DD'，用於階段推導（設定卷軸可自訂）
   history: Record<string, string[]>;
+  /**
+   * logXP[date] = 該日打卡當下快照的 XP 總額。
+   * 有了自訂開始日期後，同一個歷史日期可能因錨點改變而對映到不同 phase／菜單；
+   * XP 以打卡當下為準（logXP 優先），舊存檔缺 logXP 時退回「由目前課表重推導」。
+   */
+  logXP?: Record<string, number>;
   gateDone: string[]; // 階段關卡已完成 objective id
   unlockedSkills: string[]; // 技能樹節點 id
   badges: string[]; // 已獲得徽章 id
