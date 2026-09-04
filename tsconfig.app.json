@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": false,
+    "noEmit": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "paths": { "@/*": ["./*"] }
+  },
+  "include": ["src/skyrim/**/*.ts", "src/skyrim/**/*.tsx", "src/main.tsx", "src/App.tsx", "src/*.ts"]
+}

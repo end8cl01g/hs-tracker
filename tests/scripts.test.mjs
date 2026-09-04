@@ -271,10 +271,11 @@ test('gas/.clasp.template.json 是入庫的政策來源（CI 上沒有 .clasp.js
 
 test('deps.mjs 不只裝套件，也會補齊產物（CI 上 check 跑在 build 之前）', () => {
   const src = readFileSync(join(ROOT, 'scripts', 'deps.mjs'), 'utf8');
-  assert.match(src, /need\('build\/app\.js'/, '缺 bundle 時要自己 rollup');
   assert.match(src, /need\('gas\/dist\/Code\.gs'/, '缺 GAS 產物時要自己打一份');
-  assert.match(src, /npx rollup -c/, '要直接叫 rollup，不要用 npm run build（會遞迴回 deps.mjs）');
+  assert.doesNotMatch(src, /need\('build\/app\.js'/, '舊前端（rollup → build/app.js）已捨棄：deps 不該再去補它');
+  assert.match(src, /npx rollup -c rollup\.gas\.config\.mjs|npx rollup -c/, '要直接叫 rollup，不要用 npm run build（會遞迴回 deps.mjs）');
 });
+
 
 test('CI 的「外部 CDN」檢查要掃 URL、掃檔要涵蓋 manifest（實測：掃單字會被註解誤判，紅了整個 Actions）', () => {
   const y = readFileSync(join(ROOT, '.github', 'workflows', 'deploy.yml'), 'utf8');

@@ -77,15 +77,7 @@ test('每個 Phase 都有進階標準（gate）與分層目標；里程碑徽章
   for (const need of ['crow_return', 'wall_return', 'rust_cleared', 'first_log', 'first_sync']) assert.ok(ids.includes(need), '缺徽章 ' + need);
 });
 
-test('UI 會把退階/地點/可選/gate 畫出來（資料有但看不見等於沒有）', () => {
-  const ui = read('src/ui.ts');
-  for (const [what, re] of [['note', /e\.note/], ['regression', /e\.regression/], ['day_meta', /phaseData \|\| \{\}/], ['optional', /meta\.optional/], ['gate', /pd\.gate/], ['goals', /goals/], ['focus', /pd\.focus/]]) {
-    assert.match(ui, re, `ui.ts 沒渲染 ${what}`);
-  }
-  const css = read('css/style.css');
-  assert.match(css, /\.ex-reg/, '退階版要有自己的樣式');
-  assert.match(css, /\.gate ul/, 'gate 清單要有樣式');
-});
+
 
 test('技能樹是 PLAN.md 那棵「動作解鎖樹」：頂端是 Full Pike Press，起點是手腕與伏地挺身', () => {
   const s = JSON.parse(read('data/skills.json'));

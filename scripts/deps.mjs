@@ -31,7 +31,7 @@ try {
   process.exit(1);
 }
 function ensureArtifacts() {
-  need('build/app.js', 'npx rollup -c');
+  // 舊前端（rollup → build/app.js）已捨棄：前端由 vite 打包，產物完整性改由 scripts/web-post.mjs 與 check.mjs 驗
   need('gas/dist/Code.gs', 'npx tsc -p gas/tsconfig.json --noEmit && npx rollup -c rollup.gas.config.mjs');
 }
 ensureArtifacts();

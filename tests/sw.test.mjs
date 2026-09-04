@@ -1,4 +1,4 @@
-// tests/sw.test.mjs — 在 node 裡用假 Cache/Fetch 執行「真實的 SW」：跑 build/sw.js（rollup 從 src/sw.ts 編出的那份），
+// tests/sw.test.mjs — 在 node 裡用假 Cache/Fetch 執行「真實的 SW」：跑 dist/sw.js（rollup 從 src/sw.ts 編出的那份），
 // 不是另寫測試版，也不是直接吃 .ts（node 看不懂型別）。
 // 驗 4 件事：PRECACHE 完整性（原規格列了 cdnjs 檔 → 離線首載必掛）、data/ network-first、
 // GAS 請求不進快取、快取 key 隨 build 變（否則改版無效）。
@@ -49,7 +49,10 @@ function makeCacheStore() {
 
 /** 把 sw.js 跑起來，回傳觸發器 */
 function loadSW({ build = 'test-build', fetchImpl } = {}) {
-  const src = readFileSync(join(ROOT, 'build', 'sw.js'), 'utf8').replace("'__BUILD__'", `'${build}'`);
+  // dist/sw.js 的 VERSION 已由 web-post 注入成 git sha；測試要自己控制代號，才能驗「換版就換 cache key」
+  const src = readFileSync(join(ROOT, 'dist', 'sw.js'), 'utf8')
+    .replace("'__BUILD__'", `'${build}'`)
+    .replace(/const\s+VERSION\s*=\s*['"][^'"]*['"]/, `const VERSION = '${build}'`);   // esbuild 之後引號可能是雙引號，兩種都要吃
   const { caches } = makeCacheStore();
   const events = {};
   const calls = { fetch: 0, respondWith: [] };
@@ -67,7 +70,7 @@ function loadSW({ build = 'test-build', fetchImpl } = {}) {
   ctx.self = ctx; ctx.globalThis = ctx; ctx.serviceWorker = ctx;
   ctx.location = ctx.location || { origin: 'https://me.github.io', href: 'https://me.github.io/hs-tracker/sw.js' };
   vm.createContext(ctx);
-  vm.runInContext(src, ctx, { filename: 'build/sw.js' });
+  vm.runInContext(src, ctx, { filename: 'dist/sw.js' });
 
   const ev = (init) => ({ ...init, respondWith: (p) => calls.respondWith.push(p), waitUntil: (p) => (calls.waitUntil = p) });
   return {
@@ -86,12 +89,17 @@ function loadSW({ build = 'test-build', fetchImpl } = {}) {
 const req = (url, method = 'GET') => ({ url, method, headers: { get: () => null }, clone() { return this; } });
 
 test('PRECACHE 不含任何外部 CDN，且每一項在 repo 裡都存在', async () => {
-  const src = readFileSync(join(ROOT, 'build', 'sw.js'), 'utf8');
-  const list = [...src.matchAll(/'\.\/([^']+)'/g)].map((m) => m[1]);
-  assert.ok(list.length >= 10, `PRECACHE 太少（${list.length}）：shell 必須完整預熱（JS 已收成一支 app.js，但 css/data/icons/vendor 都要在）`);
+  const src = readFileSync(join(ROOT, 'dist', 'sw.js'), 'utf8');
+  const list = [...src.matchAll(/['"](?:\.\/|\/hs-tracker\/)([^'"]+)['"]/g)].map((m) => m[1]);
+  assert.ok(list.length >= 10, `PRECACHE 太少（${list.length}）：shell 必須完整預熱（vite 的 js/css/字型 + data + vendor + manifest 都要在）`);
   assert.ok(!/cdnjs|jsdelivr|unpkg|https:/.test(src.split('const PRECACHE')[1].split('];')[0]), 'PRECACHE 混入外部 URL');
   // app.js 是 rollup 產物（root 沒有、build/ 或 dist/ 有），所以兩個位置都算存在
-  for (const f of list) assert.ok(existsSync(join(ROOT, f)) || existsSync(join(ROOT, 'build', f)), `PRECACHE 列了不存在的 ${f} → cache.addAll 會整批失敗，SW 卡在同一版本`);
+    // 合併後 PRECACHE 是站內絕對路徑（/hs-tracker/assets/index-hash.js），實體在 dist/ 裡：比對前先剝前綴
+  const relOf = (f) => String(f).replace(/^\/hs-tracker\//, '').replace(/^\.\//, '');
+  for (const f of list) {
+    const r = relOf(f);
+    assert.ok(existsSync(join(ROOT, 'dist', r)) || existsSync(join(ROOT, r)), `PRECACHE 列了不存在的 ${f} → cache.addAll 會整批失敗，SW 卡在同一版本`);
+  }
   assert.ok(list.includes('vendor/sql-wasm.wasm') && list.includes('vendor/sql-wasm.js'), 'WASM 沒進 PRECACHE → 離線開不起來（todo 1.2/1.1）');
 });
 
@@ -138,10 +146,18 @@ test('離線且沒快取時回 Response.error()，不能回 200 假資料', asyn
 test('shell 走 cache-first：命中快取就不打網路', async () => {
   const sw = loadSW();
   await sw.install();
-  const res = await sw.fetchEvent(req('https://me.github.io/hs-tracker/app.js'));
-  assert.equal(sw.calls.fetch, 0, 'cache-first 命中時不該發 fetch');
-  assert.ok(res, '要拿到殼檔');
-  assert.match(res.body, /^pre-.*\/app\.js$/, `快取命中的应是解析後的絕對 URL，實得：${res.body}`);
+  // 前端改成 vite 產物後沒有 app.js 了；殼檔用真實存在的入口與 hashed 資產各測一次
+  const assets = JSON.parse(readFileSync(join(ROOT, 'dist/build-info.json'), 'utf8'));
+  const oneJs = Object.keys(assets.files).find((f) => /^assets\/index-.*\.js$/.test(f));
+  assert.ok(oneJs, 'dist/build-info.json 裡要有 vite 產出的入口 js');
+  for (const path of ['/hs-tracker/index.html', `/hs-tracker/${oneJs}`]) {
+    const sw = loadSW();
+    await sw.install();
+    const res = await sw.fetchEvent(req(`https://me.github.io${path}`));
+    assert.equal(sw.calls.fetch, 0, `cache-first 命中時不該發 fetch（${path}）`);
+    assert.ok(res, `要拿到殼檔（${path}）`);
+    assert.match(res.body, new RegExp(`^pre-.*${path.replace(/[.]/g, '\\.')}$`), `快取命中應是解析後的絕對 URL，實得：${res && res.body}`);
+  }
 });
 
 test('GAS 請求完全不攔截：POST 必須放行（否則同步錯誤會被快取吞掉，todo 1.9）', async () => {

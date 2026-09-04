@@ -1,0 +1,289 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-cinzel: 'Cinzel', serif;
+    --font-cinzel-dec: 'Cinzel Decorative', cursive;
+    --font-medieval: 'MedievalSharp', cursive;
+    --font-marcellus: 'Marcellus', serif;
+    --font-uncial: 'Uncial Antiqua', cursive;
+    --font-serif-tc: 'Noto Serif TC', serif;
+  }
+}
+
+/* Immersive UI Theme Styles */
+.skyrim-font {
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: #f0f0f0;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+  font-family: "Futura", "Trebuchet MS", "Cinzel", sans-serif;
+}
+
+.parchment-container {
+  background: #e6d8b3;
+  border: 2px solid #634d31;
+  box-shadow: inset 0 0 80px rgba(100, 70, 30, 0.3), 0 20px 40px rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
+  position: relative;
+}
+
+.scroll-roller {
+  position: absolute;
+  height: 100%;
+  width: 30px;
+  background: #3d2b1f;
+  border: 3px solid #2a1d15;
+  top: 0;
+  border-radius: 15px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  z-index: 20;
+}
+
+.scroll-roller-top {
+  position: absolute;
+  height: 15px;
+  width: 44px;
+  background: #1a1a1a;
+  top: -10px;
+  left: -10px;
+  border-radius: 4px;
+  border: 1px solid #444;
+}
+
+.scroll-roller-bottom {
+  position: absolute;
+  height: 15px;
+  width: 44px;
+  background: #1a1a1a;
+  bottom: -10px;
+  left: -10px;
+  border-radius: 4px;
+  border: 1px solid #444;
+}
+
+.menu-item {
+  font-family: "Georgia", serif;
+  color: #2e261d;
+  font-size: 18px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.menu-item.active {
+  color: #8b0000;
+  padding-left: 15px;
+  font-weight: bold;
+  border-bottom: 1px solid #8b0000;
+  text-shadow: 0 0 1px rgba(139, 0, 0, 0.2);
+}
+
+.hud-bar-container {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  height: 8px;
+  position: relative;
+}
+
+.hud-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+
+.compass-tick {
+  width: 1px;
+  height: 8px;
+  background: #fff;
+  opacity: 0.5;
+}
+
+.compass-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  margin: 0 20px;
+  font-family: "Futura", "Trebuchet MS", "Cinzel", sans-serif;
+  letter-spacing: 0.15em;
+}
+
+/* Custom Typography Utilities */
+.font-cinzel {
+  font-family: 'Cinzel', serif;
+}
+.font-cinzel-dec {
+  font-family: 'Cinzel Decorative', cursive;
+}
+.font-medieval {
+  font-family: 'MedievalSharp', cursive;
+}
+.font-marcellus {
+  font-family: 'Marcellus', serif;
+}
+.font-uncial {
+  font-family: 'Uncial Antiqua', cursive;
+}
+.font-serif-tc {
+  font-family: 'Noto Serif TC', serif;
+}
+
+/* Skyrim Thin Nordic Line & Diamond Ornament */
+.skyrim-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 12px;
+}
+.skyrim-divider::before,
+.skyrim-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(214, 180, 120, 0.4) 50%, transparent);
+}
+
+/* Parchment Paper & Aged Leather Aesthetic */
+.parchment-texture {
+  background-color: #ede2c9;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.25), transparent 80%),
+    radial-gradient(circle at 10% 20%, rgba(139, 90, 43, 0.08), transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(101, 67, 33, 0.12), transparent 50%),
+    radial-gradient(circle at 30% 85%, rgba(120, 75, 25, 0.07), transparent 35%);
+  box-shadow: 
+    inset 0 0 80px rgba(85, 45, 10, 0.45),
+    inset 0 0 25px rgba(45, 25, 5, 0.5),
+    0 15px 35px rgba(0, 0, 0, 0.85);
+}
+
+.leather-bound-texture {
+  background: linear-gradient(135deg, #2b1810 0%, #1e110b 40%, #341c13 70%, #170c07 100%);
+  box-shadow: 
+    inset 0 2px 4px rgba(255, 255, 255, 0.1),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.8),
+    0 8px 24px rgba(0, 0, 0, 0.9);
+}
+
+/* Burn / Weathered Edge effect */
+.parchment-burnt-edge {
+  position: relative;
+}
+.parchment-burnt-edge::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  background: radial-gradient(ellipse at center, transparent 92%, rgba(55, 25, 10, 0.85) 98%, rgba(25, 10, 5, 0.98) 100%);
+  pointer-events: none;
+  z-index: 10;
+  border-radius: 4px;
+}
+
+/* Dynamic Font Effects: Shimmer, Arcane Glow, Thu'um Vibration */
+@keyframes runicGlow {
+  0%, 100% {
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.5), 0 0 16px rgba(217, 119, 6, 0.3);
+    color: #fef3c7;
+  }
+  50% {
+    text-shadow: 0 0 16px rgba(245, 158, 11, 0.9), 0 0 32px rgba(234, 88, 12, 0.7), 0 0 45px rgba(180, 83, 9, 0.5);
+    color: #fffbeb;
+  }
+}
+
+@keyframes arcaneCyanGlow {
+  0%, 100% {
+    text-shadow: 0 0 6px rgba(56, 189, 248, 0.6), 0 0 14px rgba(14, 165, 233, 0.3);
+    color: #e0f2fe;
+  }
+  50% {
+    text-shadow: 0 0 14px rgba(56, 189, 248, 1), 0 0 28px rgba(3, 105, 161, 0.8), 0 0 40px rgba(2, 132, 199, 0.6);
+    color: #ffffff;
+  }
+}
+
+@keyframes dragonShoutPulse {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  40% {
+    transform: scale(1.08);
+    filter: brightness(1.5) drop-shadow(0 0 25px rgba(234, 88, 12, 0.9));
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes inkBleed {
+  0% {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateY(2px) scale(0.97);
+  }
+  60% {
+    opacity: 0.9;
+    filter: blur(0.5px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes mistyDrift {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translate(-3%, -2%) scale(1.05);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.25;
+  }
+}
+
+.animate-runic-glow {
+  animation: runicGlow 3s ease-in-out infinite;
+}
+
+.animate-arcane-glow {
+  animation: arcaneCyanGlow 2.5s ease-in-out infinite;
+}
+
+.animate-dragon-pulse {
+  animation: dragonShoutPulse 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.animate-ink-bleed {
+  animation: inkBleed 0.8s ease-out forwards;
+}
+
+.animate-mist {
+  animation: mistyDrift 20s ease-in-out infinite;
+}
+
+/* Custom Antique Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(20, 15, 10, 0.7);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(180, 130, 80, 0.4);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(214, 180, 120, 0.7);
+}

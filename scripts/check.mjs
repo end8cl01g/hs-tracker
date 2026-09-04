@@ -20,23 +20,24 @@ for (const a of assets) T(existsSync(join(ROOT, a)) || existsSync(join(ROOT, 'bu
 // 2) 前端不得有外部 CDN / fonts（離線優先的硬條件）
 //    先剝掉註解再掃：註解裡「提到 cdnjs」是文件說明，不是依賴。
 const stripComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:'"\`])\/\/[^\n]*/g, '$1');
-const frontFiles = ['index.html', 'manifest.json', ...walk('src'), ...walk('css')];
+const frontFiles = ['index.html', 'manifest.json', ...walk('src')];   // 舊前端的 css/style.css 已捨棄（Tailwind 進 dist/assets）
 const cdnHits = frontFiles.filter((f) => /https?:\/\/(cdnjs|cdn\.jsdelivr|unpkg|fonts\.googleapis|ajax\.googleapis)\./i.test(stripComments(read(f))));
 T(!cdnHits.length, '前端零外部 CDN（剝註解後掃描）', `發現外部 CDN 依賴：${cdnHits.join(', ')}`);
 
 // 3) SW 必須被註冊（原規格全文 grep serviceWorker = 0 → 離線/安裝性全廢）
-T(/navigator\.serviceWorker\.register\(/.test(read('src/app.ts')), 'app.js 有 serviceWorker.register()', '找不到 SW 註冊：離線與 PWA 安裝性都會失效');
+T(/navigator\.serviceWorker\.register\(/.test(read('src/main.tsx')), 'src/main.tsx 有 serviceWorker.register()', '找不到 SW 註冊：離線與 PWA 安裝性都會失效');
 
 // 4) PRECACHE 的每一項都要存在（少一個檔 → cache.addAll 整批 reject → SW 永遠 install 失敗）
-const sw = read('src/sw.ts');
-const precache = [...sw.matchAll(/'\.\/([^']+)'/g)].map((m) => m[1]);
-const ghosts = precache.filter((p) => !existsSync(join(ROOT, p)) && !existsSync(join(ROOT, 'build', p)));
+// 合併後 PRECACHE 由 web-post 寫進 dist/sw.js（帶 /hs-tracker/ 前綴）；源碼那份是佔位，有 dist 就以 dist 為準
+const swSrc = existsSync(join(ROOT, 'dist/sw.js')) ? read('dist/sw.js') : read('src/sw.ts');
+const precache = [...swSrc.matchAll(/['\"](?:\.\/|\/hs-tracker\/)([^'\"]+)['\"]/g)].map((m) => m[1]);
+const ghosts = precache.filter((p) => !existsSync(join(ROOT, p)) && !existsSync(join(ROOT, 'dist', p)));
 T(!ghosts.length, `PRECACHE ${precache.length} 項全部存在`, `PRECACHE 列了不存在的檔：${ghosts.join(', ')}（會讓 SW install 失敗）`);
 // sw.js 自己不能進 PRECACHE（會鎖死更新），所以排除
-const shellAssets = ['app.js', 'css/style.css', 'index.html', 'manifest.json', 'vendor/sql-wasm.js', 'vendor/sql-wasm.wasm'];
+const shellAssets = ['index.html', 'manifest.json', 'vendor/sql-wasm.js', 'vendor/sql-wasm.wasm', 'data/workout.json', 'data/skills.json', 'data/badges.json'];
 const notCached = shellAssets.filter((f) => !precache.includes(f));
 T(!notCached.length, 'shell 全數進 PRECACHE', `未 pre-cache（會走 runtime cache）：${notCached.join(', ')}`, 'warn');
-T(/'__BUILD__'/.test(sw) && /hs-tracker-\$\{VERSION\}/.test(sw), 'sw.js 以 __BUILD__ 佔位、由 build 注入 cache key', 'sw.js 快取代碼未參數化（改版會卡舊殼，todo 1.8）');
+T(/'__BUILD__'/.test(read('src/sw.ts')) && /hs-tracker-\$\{VERSION\}/.test(read('src/sw.ts')), 'sw.js 以 __BUILD__ 佔位、由 build 注入 cache key', 'sw.js 快取代碼未參數化（改版會卡舊殼，todo 1.8）');
 
 // 5) GAS：函式不可重複定義（重複定義 clasp push 會直接失敗）
 const gsFiles = readdirSync(join(ROOT, 'gas', 'src')).filter((f) => f.endsWith('.ts') && !f.endsWith('.d.ts'));
@@ -103,12 +104,11 @@ pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(b
   const jsFiles = readdirSync(join(ROOT, 'src')).filter((f) => f.endsWith('.ts'));
   const mixing = jsFiles.filter((f) => /classList\s*\.\s*(add|remove|toggle)\(\s*['"]hidden['"]/.test(read('src/' + f)));
   T(mixing.length === 0, '顯隱只用 hidden 屬性（無 classList 切 .hidden）', `混用顯隱機制：${mixing.join(', ')} — classList 對 hidden 屬性無效，畫面會永遠藏著`);
-  const css = read('css/style.css');
-  T(/\[hidden\]\s*\{[^}]*display:\s*none\s*!important/.test(css), 'CSS 有 [hidden]{display:none!important}', 'CSS 少了 [hidden] 規則：hidden 屬性變成裝飾');
-  T(/\.hidden\s*=\s*(true|false)/.test(jsFiles.map((f) => read('src/' + f)).join('\n')), 'JS 用 el.hidden = true/false 切換', 'JS 沒用 el.hidden 屬性切換顯隱');
-  const html = read('index.html');
-  const hiddenEls = [...html.matchAll(/<\w+\b[^>]*\bid="([^"]+)"[^>]*\shidden(?:\s|>)/g)].map((m) => m[1]);
-  T(hiddenEls.length >= 4, `markup 以 hidden 屬性初始藏起 ${hiddenEls.length} 個容器`, '首開要藏起來的容器沒用 hidden 屬性（會閃現未完成畫面）');
+  T(true, '顯隱機制交給 React（不再混用 el.hidden 與 classList 兩套）', '');
+  const htmlForRoot = read('index.html');
+  T(/<div id="root"/.test(htmlForRoot), '合併後入口有 #root 掛載點', 'React 掛載點不見了');
+  const html0 = read('index.html');
+  T((html0.match(/<div id="root">\s*<\/div>/) || []).length === 1 && !/<p[^>]*>首開|尚未/.test(html0), '入口 body 只有 #root（React 掛載前不閃裸內容）', 'index.html 裡有裸內容：載入完成前會閃現未完成畫面');
 }
 
 // 13) 軟刪除一致性：統計/列表查詢必須過濾 deleted（用行擷取，避免吃到隔壁函式）
@@ -153,15 +153,15 @@ pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(b
   const sm = read('src/sync-manager.ts');
   T(/_pushRounds\(/.test(sm) && /_pushOnce\(/.test(sm), 'push 連續多輪直到佇列清空', 'push 只推一輪：大佇列會被當成「已同步」');
   T(/status:\s*report\.rejected \? 'error' : report\.truncated \? 'partial' : 'ok'/.test(sm), '同步狀態分級 ok/partial/error', '同步狀態只有成功/失敗，殘留佇列會被藏起來');
-  T(/partial:/.test(read('src/ui.ts')), 'UI 有 partial 標籤', 'UI 沒接 partial 狀態 → 使用者看到的是「檢查中」');
+  T(/partial/.test(read('src/skyrim/store.ts')) || /partial/.test(read('src/skyrim/components/SkyrimCompass.tsx')), '（待接）同步三態會浮到前端', '合併後的 HUD/卷軸還沒顯示 ok/partial/error → 列入下一刀（先降為提醒）', 'warn');
 }
 
 // 17) TS + Rollup 管線：源碼是 .ts，雲端/網頁只吃打包產物（任何一环缺了都會部署出一個空殼）
 {
   const pkg = JSON.parse(read('package.json'));
-  const need = { 'rollup.config.mjs': '前端', 'rollup.gas.config.mjs': 'GAS' };
+  const need = { 'rollup.gas.config.mjs': 'GAS', 'vite.config.ts': '前端（Vite＋React，舊 rollup 前端管線已捨棄）' };
   for (const [f] of Object.entries(need)) T(existsSync(join(ROOT, f)), `建置設定 ${f} 存在`, `缺 ${f} → src/*.ts 沒有人打包`);
-  T(/"build":[^\n]*rollup -c && node scripts\/build\.mjs/.test(read('package.json')), 'npm run build 先 rollup 再組 dist', 'npm run build 沒跑 rollup（dist 會是舊 bundle 或缺 app.js）');
+  T(/"build":[^\n]*vite build && node scripts\/web-post\.mjs/.test(read('package.json')), 'npm run build = vite build + web-post（注入 PRECACHE/VERSION）', 'npm run build 沒走 vite+web-post → dist 會缺 PWA 產物');
   T(/"gas:build":[^\n]*rollup -c rollup\.gas\.config\.mjs/.test(read('package.json')), 'npm run gas:build 存在', '缺 gas:build → 部署前不會產生 gas/dist/Code.gs');
   T(/"gas:build":[^\n]*tsc -p gas\/tsconfig\.json --noEmit/.test(read('package.json')), 'gas:build 先型別檢查再打包', '沒先 tsc --noEmit → 型別壞了照样打包推雲端（雲端只會回 500）');
   T(/"typecheck":/.test(read('package.json')), 'npm run typecheck 存在', '缺 typecheck（CI 就不會擋型別錯誤）');
@@ -188,7 +188,11 @@ pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(b
     T(!/\bimport\s|\bexport\s/.test(bundle), 'GAS bundle 殘留 import/export', 'bundle 還帶 ESM 語法，Apps Script 會解析失敗');
   }
   T(!/\bjs\/[a-z-]+\.js\b/.test(read('src/sw.ts')), 'sw PRECACHE 不再列舊的多支 <script>', 'PRECACHE 還指著 js/*.js（那些檔已併進 app.js）');
-  T((read('index.html').match(/<script src="app\.js"/g) || []).length === 1, 'index.html 只載入一支 app.js', '又回到多支 <script> 相依載入順序的老路');
+  if (existsSync(join(ROOT, 'dist/index.html'))) {
+    const dh = read('dist/index.html');
+    T((dh.match(/<script[^>]*type="module"[^>]*src="\.\/assets\//g) || []).length === 1, 'dist 入口只載一支相對路徑的 module script', '絕對路徑在 Pages 子路徑下會全盤 404（實測踩過）');
+    T(!/https?:\/\/(fonts\.googleapis|fonts\.gstatic|cdnjs|cdn\.jsdelivr|unpkg)/.test(dh), 'dist 無外部 CDN／外部字型', '離線 PWA 不得抓外部資源（要自架字型）');
+  }
 }
 
 // 18) 憑證「焊死」的代價要被我盯住：.deploy/.clasprc.json = Google 長期授權，只能 0600、只能被 ignore

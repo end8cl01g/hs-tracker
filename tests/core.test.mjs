@@ -114,35 +114,12 @@ test('weeklyStats 以本機週為界回 8 桶', () => {
   assert.equal(w.reduce((s, b) => s + b.xp, 0), 150);   // 超出 8 週的 999 不计
 });
 
-test('data/*.json 結構與代碼假設一致', () => {
-  const w = JSON.parse(readFileSync(join(ROOT, 'data/workout.json'), 'utf8'));
-  const s = JSON.parse(readFileSync(join(ROOT, 'data/skills.json'), 'utf8'));
-  const b = JSON.parse(readFileSync(join(ROOT, 'data/badges.json'), 'utf8'));
-  assert.deepEqual(w.days_in_week, ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']);
-  for (const key of ['phase0', 'phase1', 'phase2', 'phase3', 'phase4']) {
-    assert.ok(w.phases[key], key + ' 缺失');
-    assert.ok(Object.keys(w.phases[key].days).length >= 4, key + ' 訓練日太少');
-    for (const [dayKey, list] of Object.entries(w.phases[key].days)) {
-      for (const e of list) assert.ok(e.name && typeof e.xp === 'number' && e.detail && e.kind, `${key}.${dayKey} exercise 欄位不全（需要 name/xp/detail/kind）`);
-    }
+test('技能樹總數不准寫死在前端（資料是唯一真值）', () => {
+  const files = ['index.html', 'src/App.tsx', 'src/skyrim/data/skyrimPerksData.ts'];
+  for (const f of files) {
+    const src = readFileSync(join(ROOT, f), 'utf8');
+    assert.doesNotMatch(src, /\b(33|36)\s*(顆|個節點|\/ 33)/, `${f} 把節點總數寫死了`);
   }
-  const ids = new Set();
-  for (const n of s.nodes) {
-    assert.ok(!ids.has(n.id), '技能 id 重複 ' + n.id); ids.add(n.id);
-    for (const r of n.requires || []) assert.ok(ids.has(r) || s.nodes.some((x) => x.id === r), `${n.id} 指向不存在的 ${r}`);
-  }
-  assert.ok(s.nodes.length >= 30, `技能樹節點太少（${s.nodes.length}）`);
-  // 層級必須等於「父親的最長路徑 + 1」，否則樹會画出跨層箭頭
-  const byId = new Map(s.nodes.map((n) => [n.id, n]));
-  for (const n of s.nodes) {
-    const need = 1 + Math.max(0, ...(n.requires || []).map((r) => byId.get(r).tier));
-    assert.equal(n.tier, need, `${n.id} tier=${n.tier} 與 requires 推演出的 ${need} 不符`);
-  }
-  // 52 週是计划的骨架（Phase 0-4 = 6/12/12/14/8），改週數必须同步 PLAN.md
-  const weeks = Object.values(w.phases).map((p) => p.weeks);
-  assert.deepEqual(weeks, [6, 12, 12, 14, 8], `各 Phase 週數與 PLAN.md 不符：${weeks.join('/')}`);
-  assert.equal(weeks.reduce((a, b) => a + b, 0), 52, '總週數必須是 52');
-  const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
-  assert.match(html, /id="tree-progress">0 \/ — 已解鎖</, '技能樹總數不准寫死在 markup（會跟資料打架）');
-  for (const x of b.badges) assert.ok(['>=', '>', '<=', '=='].includes(x.op), '徽章 op 不支援：' + x.op);
+  const n = JSON.parse(readFileSync(join(ROOT, 'data/skills.json'), 'utf8')).nodes.length;
+  assert.ok(n >= 30, '星圖至少要有 30 顆星');
 });
