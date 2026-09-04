@@ -90,9 +90,17 @@ export const SkyrimSettingsView: React.FC<SkyrimSettingsViewProps> = ({
     setCfg(c);
     setUrl(c.url);
     setSecret(c.secret);
-    setStartDate(hs.startedAt);
-    setStartNote(null);
     setArmPurge(false);
+    setStartNote(null);
+  }, [open]);
+
+  // startedAt 變更（套用開始日期／雲端合併）只同步輸入框，不清除操作提示。
+  // （此前 deps 含 hs.startedAt → 套用成功 → hs 更新 → startNote 同幀被清空，
+  //   「開始日期已設為…」永遠看不到——Playwright 審查 D2 抓到）
+  useEffect(() => {
+    if (!open) return;
+    setStartDate(hs.startedAt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, hs.startedAt]);
 
   useEffect(() => {
