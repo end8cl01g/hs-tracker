@@ -123,7 +123,12 @@ function logXPFromObjectives(objectives: QuestObjective[]): number {
   return objectives.reduce((s, o) => s + (o.completed ? Number(o.xp || 0) : 0), 0);
 }
 
-/** 產生本週＋上週的訓練日任務（與舊 todayPlan 相同的 weekday 真相與 mapped 規則） */
+/**
+ * 產生訓練日任務：上週＋本週＋下週的日曆視窗，但「計畫開始日（startedAt）之前不生成」。
+ * —— 課表自訂開始日期設為今天後，任務列表就會從那天開始，不會再冒出錨點前的舊日期
+ *    （那些日子在計畫上不存在；歷史打卡仍在 history／logXP 內，統計不受影響）。
+ * weekday 真相與 mapped 輪替規則與舊 todayPlan 完全一致。
+ */
 function buildWorkoutQuests(hs: HSEmbedded, today: string): Quest[] {
   const quests: Quest[] = [];
   const restDays = (workoutData.rest_days ?? [0, 6]).map(Number);
@@ -131,11 +136,15 @@ function buildWorkoutQuests(hs: HSEmbedded, today: string): Quest[] {
   const wdToday = weekdayOf(today) ?? 0;
   const thisSunday = addDays(today, -wdToday); // 週日為一週之首（與 days_in_week 對齊）
 
-  const weekStarts = [0, -7]; // 本週、上週
+  // 錨點下限：原則上 = startedAt；防禦壞檔（未來錨點）時退到今天，課表不會整個消失
+  const anchorFloor = hs.startedAt > today ? today : hs.startedAt;
+
+  const weekStarts = [-7, 0, 7]; // 上週、本週、下週
   for (const offset of weekStarts) {
     const sunday = addDays(thisSunday, offset);
     for (let wd = 0; wd < 7; wd++) {
       const date = addDays(sunday, wd);
+      if (date < anchorFloor) continue; // 計畫開始前的日子：沒有課表，不生成任務
       if (restDays.includes(wd)) continue;
       const phase = phaseForDate(workoutData, date, hs.startedAt);
       const phaseData = workoutData.phases[`phase${phase}`];
