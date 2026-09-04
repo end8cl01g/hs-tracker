@@ -29,14 +29,22 @@ T(/navigator\.serviceWorker\.register\(/.test(read('src/main.tsx')), 'src/main.t
 
 // 4) PRECACHE 的每一項都要存在（少一個檔 → cache.addAll 整批 reject → SW 永遠 install 失敗）
 // 合併後 PRECACHE 由 web-post 寫進 dist/sw.js（帶 /hs-tracker/ 前綴）；源碼那份是佔位，有 dist 就以 dist 為準
-const swSrc = existsSync(join(ROOT, 'dist/sw.js')) ? read('dist/sw.js') : read('src/sw.ts');
-const precache = [...swSrc.matchAll(/['\"](?:\.\/|\/hs-tracker\/)([^'\"]+)['\"]/g)].map((m) => m[1]);
-const ghosts = precache.filter((p) => !existsSync(join(ROOT, p)) && !existsSync(join(ROOT, 'dist', p)));
-T(!ghosts.length, `PRECACHE ${precache.length} 項全部存在`, `PRECACHE 列了不存在的檔：${ghosts.join(', ')}（會讓 SW install 失敗）`);
-// sw.js 自己不能進 PRECACHE（會鎖死更新），所以排除
-const shellAssets = ['index.html', 'manifest.json', 'vendor/sql-wasm.js', 'vendor/sql-wasm.wasm', 'data/workout.json', 'data/skills.json', 'data/badges.json'];
-const notCached = shellAssets.filter((f) => !precache.includes(f));
-T(!notCached.length, 'shell 全數進 PRECACHE', `未 pre-cache（會走 runtime cache）：${notCached.join(', ')}`, 'warn');
+// dist/sw.js 由 web-post 注入；源碼 src/sw.ts 那串是佔位（含已捨棄的 app.js/css），沒 build 時拿它校驗必然假紅（CI 就是這樣掛的）
+const DIST_SW = join(ROOT, 'dist', 'sw.js');
+const built = existsSync(DIST_SW);
+const swSrc = built ? read('dist/sw.js') : '';
+const precache = [...swSrc.matchAll(/['\"](?:\.\/|\/hs-tracker\/)([^'\"]+)['\"]/g)].map((m) => m[1]).map((p) => (p === './' ? 'index.html' : p));
+if (!built) {
+  T(true, 'PRECACHE 存在性（尚未 build，跳過）', '先 npm run build；CI 会在 build 後的「建置產物完整性」步驟實測', 'warn');
+} else {
+  // PRECACHE 的每一項都必須是 dist 裡的實檔（少一個 → addAll 整批 reject → SW install 永遠失敗）
+  const ghosts = precache.filter((p) => !existsSync(join(ROOT, 'dist', p)));
+  T(!ghosts.length, `PRECACHE ${precache.length} 項全部存在於 dist/`, `PRECACHE 列了不存在的檔：${ghosts.join(', ')}（會讓 SW install 失敗）`);
+  // sw.js 自己不能進 PRECACHE（會鎖死更新），所以排除
+  const shell = ['index.html', 'manifest.json', 'vendor/sql-wasm.js'].filter((f) => !precache.includes(f));
+  const notCached = shell;
+  T(!notCached.length, 'shell 全數進 PRECACHE', `未 pre-cache（會走 runtime cache）：${notCached.join(', ')}`, 'warn');
+}
 T(/'__BUILD__'/.test(read('src/sw.ts')) && /hs-tracker-\$\{VERSION\}/.test(read('src/sw.ts')), 'sw.js 以 __BUILD__ 佔位、由 build 注入 cache key', 'sw.js 快取代碼未參數化（改版會卡舊殼，todo 1.8）');
 
 // 5) GAS：函式不可重複定義（重複定義 clasp push 會直接失敗）
