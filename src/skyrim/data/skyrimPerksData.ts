@@ -37,6 +37,9 @@ const BRANCH: Record<string, { zh: string; en: string; icon: string; stone: Guar
   fear:    { zh: '恐懼管理', en: 'Fear Control',       icon: 'EyeOff',  stone: 'thief',   color: '#a0aec0', glow: 'rgba(160,174,192,.28)' },
 };
 const STONE_NAME: Record<GuardianStone, string> = { warrior: '戰士', mage: '法師', thief: '竊賊' };
+const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F]/gu;
+/** 介面不顯示 emoji（使用者的硬要求）；資料檔保持原樣，清理要在產生器做，不在這裡改寫內容語意 */
+const noEmoji = (t: any) => String(t ?? '').replace(EMOJI, '').replace(/\s{2,}/g, ' ').trim();
 const R0 = 132, STEP = 74, W = 1000, H = 700;   // 與放射公式同步；改這裡等於改星圖骨架
 
 function layout(nodes: Node[]) {
@@ -72,9 +75,10 @@ export function buildSkillTrees(unlocked: Record<string, boolean> = {}): SkyrimS
       const pre = (n.requires || []).find((r) => inTree.has(r));
       const cross = (n.requires || []).filter((r) => !inTree.has(r));
       return {
-        id: n.id, name: n.name, nameEn: n.id, skillReq: n.min_xp || 0, ranks: '1/1',
-        prerequisite: pre, description: [n.desc, n.regression ? `退階：${n.regression}` : '', cross.length ? `需先点亮其他分支：${cross.join('、')}` : '']
-          .filter(Boolean).join('｜'),
+        id: n.id, name: noEmoji(n.name), nameEn: n.id, skillReq: n.min_xp || 0, ranks: '1/1',
+        prerequisite: pre,
+        description: noEmoji([n.desc, n.regression ? `退階：${n.regression}` : '', cross.length ? `需先點亮其他分支：${cross.join('、')}` : '']
+          .filter(Boolean).join('｜')),
         descriptionEn: `${STONE_NAME[meta.stone]} · 第 ${p.depth + 1} 環`,
         x: +((p.x / W) * 100).toFixed(2), y: +((p.y / H) * 100).toFixed(2),
         isUnlockedDefault: !!unlocked[n.id],

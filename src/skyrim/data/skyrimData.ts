@@ -21,6 +21,10 @@ export interface InventoryItem {
   description: string; enchantment?: string; iconType: string; isEquipped?: boolean;
 }
 
+const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F]/gu;
+/** 介面不顯示 emoji（使用者的硬要求）。資料檔保持原樣：要清就清產生器，不在渲染層改寫內容語意。 */
+const noEmoji = (t: any) => String(t ?? '').replace(EMOJI, '').replace(/\s{2,}/g, ' ').trim();
+
 const W: any = workoutJson as any;
 const S: any = skillsJson as any;
 const B: any = badgesJson as any;
@@ -38,20 +42,20 @@ export const ANCIENT_SCROLLS: ScrollItem[] = (W.phases ? Object.entries<any>(W.p
       const bits = [`〔${KIND[e.kind] || e.kind || '動作'}〕${e.name}${dose ? ` — ${dose}` : ''}`];
       if (e.note) bits.push(`[!] ${e.note}`);
       if (e.regression) bits.push(`退階：${e.regression}`);
-      return bits.join('  ');
+      return noEmoji(bits.join('  '));
     });
     return {
       id: `${pid}-${dayKey}`,
-      title: `${p.name || pid} · ${DAY_ZH[dayKey] || dayKey}`,
-      subtitle: meta.label || p.focus || '',
+      title: noEmoji(`${p.name || pid} · ${DAY_ZH[dayKey] || dayKey}`),
+      subtitle: noEmoji(meta.label || p.focus || ''),
       date: `第 ${p.weeks_range ? `${p.weeks_range[0]}–${p.weeks_range[1]} 週` : `${pi + 1} 段`} · 週 ${di + 1}`,
       author: 'PLAN.md（訓練計劃 v3）',
       sealType: SEALS[pi % SEALS.length], sealColor: '#8b6b3d', paperTone: TONES[pi % TONES.length],
       contentLines: lines.length ? lines : ['本日休養：讓結締組織追回來（這不是偷懶，是計劃的一條）'],
-      runicHeader: (p.focus || meta.label || p.name || pid).toString().slice(0, 22),
+      runicHeader: noEmoji((p.focus || meta.label || p.name || pid).toString()).slice(0, 22),
       illuminatedLetter: (meta.label || p.name || 'P').toString().slice(0, 1),
-      notes: [meta.place && `地點：${meta.place}`, meta.minutes && `時間：約 ${meta.minutes} 分`,
-        meta.optional ? '這一天可選（不做不算破功）' : '', p.gate_note || ''].filter(Boolean).join('　'),
+      notes: noEmoji([meta.place && `地點：${meta.place}`, meta.minutes && `時間：約 ${meta.minutes} 分`,
+        meta.optional ? '這一天可選（不做不算破功）' : '', p.gate_note || ''].filter(Boolean).join('　')),
       translationNotes: (p.gate || []).slice(0, 4).map((g: any, i: number) => ({
         rune: ['ᚨ', 'ᛁ', '', ''][i % 4], dovah: `ZIi ${i + 1}`, translation: typeof g === 'string' ? g : (g?.label || g?.id || ''),
       })),
@@ -61,9 +65,9 @@ export const ANCIENT_SCROLLS: ScrollItem[] = (W.phases ? Object.entries<any>(W.p
 
 /** 一面龍語牆 = 一輪能力證明：徽章是代理指標，標準寫在 desc（自查用，不是自誇用） */
 export const DRAGON_SHOUTS: DragonShout[] = (B.badges || []).map((b: any, i: number) => ({
-  id: b.id, name: b.name || b.id, englishName: b.id,
-  description: b.desc || '',
-  words: [{ dovah: String(b.id).toUpperCase(), runicGlyph: ['ᚱ', 'ᛗ', '', ''][i % 4], meaning: b.name || b.id,
+  id: b.id, name: noEmoji(b.name || b.id), englishName: b.id,
+  description: noEmoji(b.desc || ''),
+  words: [{ dovah: String(b.id).toUpperCase(), runicGlyph: ['ᚱ', 'ᛗ', '', ''][i % 4], meaning: noEmoji(b.name || b.id),
     phonetic: b.metric ? `${b.metric}${b.threshold != null ? ` ≥ ${b.threshold}` : ''}` : '自查',
     element: (['force', 'fire', 'frost', 'time', 'spirit', 'storm'] as const)[i % 6] }],
   cooldown: b.threshold ?? 1,
