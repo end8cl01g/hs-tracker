@@ -1,0 +1,1125 @@
+{
+  "version": 3,
+  "updated_at": "2026-09-03T15:08:52.592Z",
+  "plan_source": "PLAN.md（第三次審議：Phase 0 除鏽重建 ＋ 分層目標）",
+  "kind_labels": {
+    "warmup": "熱身",
+    "hold": "支撐",
+    "strength": "力量",
+    "core": "核心",
+    "mobility": "柔韌",
+    "play": "自由練習",
+    "assess": "評估",
+    "skill": "技巧"
+  },
+  "rest_days": [
+    0,
+    6
+  ],
+  "days_in_week": [
+    "sun",
+    "mon",
+    "tue",
+    "wed",
+    "thu",
+    "fri",
+    "sat"
+  ],
+  "goals": {
+    "must": [
+      "自由倒立 30 秒",
+      "Headstand Press",
+      "Straddle Press Negative 全程控制"
+    ],
+    "stretch": [
+      "首次完整 Straddle Press to Handstand"
+    ],
+    "bonus": [
+      "Straddle Press 連續 3 次"
+    ],
+    "note": "1 年分層目標（第三次審議裁定）：必達沒穩之前，挑戰與延伸都不優先。"
+  },
+  "phases": {
+    "phase0": {
+      "title": "除鏽重建",
+      "weeks": 6,
+      "weeks_range": [
+        1,
+        6
+      ],
+      "focus": "不追求強度，追求「重新連結」：每個動作都從退階版開始，讓神經系統重新記起動作模式。",
+      "day_meta": {
+        "mon": {
+          "label": "力量（推+核心）",
+          "place": "chocoZAP",
+          "minutes": "35-45"
+        },
+        "tue": {
+          "label": "動作重建 A",
+          "place": "九龍公園",
+          "minutes": "35-45"
+        },
+        "wed": {
+          "label": "力量（拉+核心）",
+          "place": "chocoZAP",
+          "minutes": "35-45"
+        },
+        "thu": {
+          "label": "動作重建 B",
+          "place": "九龍公園",
+          "minutes": "35-45"
+        },
+        "fri": {
+          "label": "柔韌＋輕度練習（可選）",
+          "place": "九龍公園草地",
+          "minutes": "30",
+          "optional": true
+        }
+      },
+      "days": {
+        "mon": [
+          {
+            "name": "健身單車熱身",
+            "xp": 10,
+            "kind": "warmup",
+            "detail": "5 分鐘 · 中等",
+            "note": "全身升溫",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "肩推機",
+            "xp": 20,
+            "kind": "strength",
+            "detail": "3 × 12-15（輕重量）· 2 秒上 / 3 秒下",
+            "note": "⚠️ 前 2 週用你覺得「太輕」的重量：目的是讓肩關節重新適應軌道，不是衝重量",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "胸推機",
+            "xp": 20,
+            "kind": "strength",
+            "detail": "3 × 12-15（輕重量）· 2 秒上 / 3 秒下",
+            "note": "同上，先把軌道走穩",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "跪姿 Pike Push-up",
+            "xp": 25,
+            "kind": "strength",
+            "detail": "3 × 8-10 · 慢速",
+            "regression": "雙膝跪地、臀部後坐高抬起做俯身推（比完整版容易約 50%）",
+            "note": "能做 3×12 後升級為完整版"
+          },
+          {
+            "name": "平板支撐",
+            "xp": 15,
+            "kind": "core",
+            "detail": "3 × 30 秒",
+            "regression": "手撐在長椅／矮槓上（提高手位）",
+            "note": "夾臀、收肋、推離地面"
+          },
+          {
+            "name": "Dead Bug",
+            "xp": 15,
+            "kind": "core",
+            "detail": "3 × 8 每側 · 慢速",
+            "note": "對側手腳伸出時呼氣、腰椎貼地",
+            "regression": "縮小幅度；腰椎一有感覺就停"
+          },
+          {
+            "name": "手腕強化：手指撐桌推",
+            "xp": 10,
+            "kind": "strength",
+            "detail": "2 × 15",
+            "note": "雙手撐器材座椅邊緣，用手指力量推起 — 預防手腕傷害",
+            "regression": "減 1/3 次數，或改用退階體式"
+          }
+        ],
+        "tue": [
+          {
+            "name": "手腕熱身",
+            "xp": 10,
+            "kind": "warmup",
+            "detail": "5 分鐘",
+            "note": "繞環、撐地前後搖擺、祈禱式伸展",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "面牆倒立（胸朝牆）",
+            "xp": 30,
+            "kind": "hold",
+            "detail": "5 × 15-30 秒 · 休息 90 秒",
+            "regression": "腳在牆上、身體傾斜 45°，每次訓練讓手走近牆一點",
+            "note": "⚠️ 不要第一天就踢上去！慢慢走上去"
+          },
+          {
+            "name": "烏鴉式",
+            "xp": 25,
+            "kind": "hold",
+            "detail": "5 × 嘗試 · 休息 60 秒",
+            "regression": "雙腳先貼地、重心前移到指尖；再單腳離地；最後雙腳",
+            "note": "前方放背包當安全墊（防止臉摔地）"
+          },
+          {
+            "name": "L-sit（屈膝）",
+            "xp": 20,
+            "kind": "hold",
+            "detail": "4 × 10-15 秒 · 休息 60 秒",
+            "regression": "屈膝提起 → 伸直一條腿 → 兩條腿",
+            "note": "能做 4×20 秒屈膝版後再升級"
+          },
+          {
+            "name": "伏地挺身",
+            "xp": 15,
+            "kind": "strength",
+            "detail": "3 × 10-15",
+            "regression": "手上長椅（降低坡度）"
+          },
+          {
+            "name": "柔韌性訓練",
+            "xp": 15,
+            "kind": "mobility",
+            "detail": "10-12 分鐘",
+            "note": "Pike 前彎 + Pancake + 肩部過頭 + 手腕",
+            "regression": "只到微微張力，不追深度"
+          }
+        ],
+        "wed": [
+          {
+            "name": "跑步機快走熱身",
+            "xp": 10,
+            "kind": "warmup",
+            "detail": "5 分鐘",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "高拉背機",
+            "xp": 20,
+            "kind": "strength",
+            "detail": "3 × 12-15（輕重量）· 2 秒拉 / 3 秒回",
+            "note": "前 2 週輕重量，專注「肩胛骨先下沉再拉」",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "高拉背機（窄握／反握）",
+            "xp": 20,
+            "kind": "strength",
+            "detail": "3 × 12-15 · 2 秒拉 / 3 秒回",
+            "note": "不同握法強化二頭與中背",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "腿推機",
+            "xp": 15,
+            "kind": "strength",
+            "detail": "3 × 15 · 2 秒推 / 3 秒回",
+            "note": "輕重量，維持下肢基礎",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "Hollow Body Hold",
+            "xp": 20,
+            "kind": "core",
+            "detail": "4 × 15-20 秒 · 休息 45 秒",
+            "regression": "屈膝版：雙膝拉向胸口、肩膀離地、腰椎壓地；能做 4×30 秒後伸直雙腿"
+          },
+          {
+            "name": "Superman Hold",
+            "xp": 15,
+            "kind": "core",
+            "detail": "3 × 15-20 秒",
+            "note": "俯臥手腳同時離地，強化下背以平衡 Hollow Body",
+            "regression": "縮小幅度；腰椎一有感覺就停"
+          },
+          {
+            "name": "手腕伸展",
+            "xp": 10,
+            "kind": "mobility",
+            "detail": "3 分鐘",
+            "note": "四方向各 30 秒",
+            "regression": "只到微微張力，不追深度"
+          }
+        ],
+        "thu": [
+          {
+            "name": "手腕熱身",
+            "xp": 10,
+            "kind": "warmup",
+            "detail": "5 分鐘",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "面牆倒立",
+            "xp": 25,
+            "kind": "hold",
+            "detail": "4 × 15-30 秒",
+            "note": "比 Day 2 略少量，保留體力",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": "雙槓支撐 Hold",
+            "xp": 25,
+            "kind": "hold",
+            "detail": "4 × 15-20 秒 · 休息 60 秒",
+            "regression": "腳撐地減少負擔",
+            "note": "🔩 公園雙槓。肩膀下壓、鎖肘 — 之後 L-sit on bars 的基礎"
+          },
+          {
+            "name": "雙槓屈膝提腿",
+            "xp": 20,
+            "kind": "core",
+            "detail": "3 × 8 · 休息 60 秒",
+            "note": "🔩 支撐位提膝到胸口，壓縮力量啟蒙",
+            "regression": "縮小幅度；腰椎一有感覺就停"
+          },
+          {
+            "name": "引體向上",
+            "xp": 25,
+            "kind": "strength",
+            "detail": "4 × 最大次數 · 休息 120 秒",
+            "regression": "跳上去再慢放 5 秒（離心引體）",
+            "note": "🔩 引體架"
+          },
+          {
+            "name": "站姿壓縮提腿",
+            "xp": 15,
+            "kind": "core",
+            "detail": "3 × 5 · 休息 60 秒",
+            "regression": "一手扶欄杆保持平衡",
+            "note": "雙腿伸直用髖屈肌抬起，能抬多高抬多高"
+          },
+          {
+            "name": "柔韌性訓練",
+            "xp": 15,
+            "kind": "mobility",
+            "detail": "10-12 分鐘",
+            "note": "加重 Pancake 比例",
+            "regression": "只到微微張力，不追深度"
+          }
+        ],
+        "fri": [
+          {
+            "name": "快走暖身",
+            "xp": 5,
+            "kind": "warmup",
+            "detail": "5 分鐘",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "全套柔韌性（加長版）",
+            "xp": 20,
+            "kind": "mobility",
+            "detail": "20 分鐘",
+            "regression": "只到微微張力，不追深度"
+          },
+          {
+            "name": "烏鴉式隨意嘗試",
+            "xp": 10,
+            "kind": "play",
+            "detail": "5 分鐘",
+            "note": "不計時、不計組 — 心態是 Play",
+            "regression": "只玩已熟練的動作，不試新風險"
+          },
+          {
+            "name": "面牆倒立隨意嘗試",
+            "xp": 10,
+            "kind": "play",
+            "detail": "5 分鐘",
+            "note": "讓身體在草地上自由探索",
+            "regression": "只玩已熟練的動作，不試新風險"
+          }
+        ]
+      },
+      "gate": [
+        "面牆倒立（胸朝牆）60 秒 × 2 組",
+        "烏鴉式 30 秒穩定",
+        "L-sit（直腿）15 秒",
+        "Pike Push-up 3 × 10（完整版）",
+        "伏地挺身 3 × 20",
+        "引體向上 3 × 5",
+        "Hollow Body Hold（直腿）30 秒",
+        "站姿前彎手指至少觸腳踝"
+      ],
+      "gate_note": "全部達標才進入 Phase 1 —— 看能力，不看日曆。"
+    },
+    "phase1": {
+      "title": "地基工程",
+      "weeks": 12,
+      "weeks_range": [
+        7,
+        18
+      ],
+      "focus": "建立自由倒立 5-10 秒與基礎力量；所有支撐都以「質量優先」為準。",
+      "day_meta": {
+        "mon": {
+          "label": "力量＋支撐",
+          "place": "chocoZAP",
+          "minutes": "45-55"
+        },
+        "tue": {
+          "label": "倒立技巧 A",
+          "place": "九龍公園",
+          "minutes": "45"
+        },
+        "wed": {
+          "label": "力量（拉＋核心）",
+          "place": "chocoZAP",
+          "minutes": "45-55"
+        },
+        "thu": {
+          "label": "倒立技巧 B",
+          "place": "九龍公園",
+          "minutes": "45"
+        },
+        "fri": {
+          "label": "柔韌＋嘗試（可選）",
+          "place": "九龍公園草地",
+          "minutes": "30",
+          "optional": true
+        }
+      },
+      "days": {
+        "mon": [
+          {
+            "name": "肩推",
+            "kind": "strength",
+            "xp": 25,
+            "detail": "4 × 8 · 2/3 拍",
+            "regression": "器械肩推先穩再加重"
+          },
+          {
+            "name": "胸推機",
+            "kind": "strength",
+            "xp": 20,
+            "detail": "4 × 10",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "伏地挺身",
+            "kind": "strength",
+            "xp": 20,
+            "detail": "4 × 12-15",
+            "regression": "手上長椅"
+          },
+          {
+            "name": "Pike Push-up",
+            "kind": "strength",
+            "xp": 25,
+            "detail": "4 × 8",
+            "regression": "跪姿或手上矮槓"
+          },
+          {
+            "name": "空心體",
+            "kind": "core",
+            "xp": 15,
+            "detail": "4 × 30 秒",
+            "regression": "屈膝 Hollow"
+          }
+        ],
+        "tue": [
+          {
+            "name": "手腕熱身",
+            "kind": "warmup",
+            "xp": 10,
+            "detail": "5 分鐘",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "面牆倒立",
+            "kind": "hold",
+            "xp": 30,
+            "detail": "6 × 20-30 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": "離牆平衡嘗試（背牆）",
+            "kind": "hold",
+            "xp": 30,
+            "detail": "6 × 3-8 秒",
+            "note": "⚠️ 腳跟碰牆就好；塌肩就停",
+            "regression": "只離牆 5 公分、手邊放瑜伽磚"
+          },
+          {
+            "name": "烏鴉式",
+            "kind": "hold",
+            "xp": 20,
+            "detail": "4 × 20-30 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": "L-sit（屈膝）",
+            "kind": "hold",
+            "xp": 20,
+            "detail": "4 × 15 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": "柔韌性訓練",
+            "kind": "mobility",
+            "xp": 15,
+            "detail": "12 分鐘",
+            "regression": "只到微微張力，不追深度"
+          }
+        ],
+        "wed": [
+          {
+            "name": "引體向上",
+            "kind": "strength",
+            "xp": 25,
+            "detail": "5 × 最大",
+            "regression": "離心 5 秒慢放"
+          },
+          {
+            "name": "高拉背",
+            "kind": "strength",
+            "xp": 20,
+            "detail": "4 × 10",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "腿推機",
+            "kind": "strength",
+            "xp": 15,
+            "detail": "4 × 12",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "懸掛提腿",
+            "kind": "core",
+            "xp": 20,
+            "detail": "4 × 8",
+            "regression": "屈膝提腿"
+          },
+          {
+            "name": "Superman Hold",
+            "kind": "core",
+            "xp": 10,
+            "detail": "3 × 20 秒",
+            "regression": "縮小幅度；腰椎一有感覺就停"
+          }
+        ],
+        "thu": [
+          {
+            "name": "手腕熱身",
+            "kind": "warmup",
+            "xp": 10,
+            "detail": "5 分鐘",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "背牆倒立",
+            "kind": "hold",
+            "xp": 30,
+            "detail": "5 × 30-45 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": "踢上牆練習",
+            "kind": "skill",
+            "xp": 25,
+            "detail": "6 × 嘗試",
+            "regression": "先練「一只腳蹬地＋另一腳輕點」的節奏"
+          },
+          {
+            "name": "雙槓支撐",
+            "kind": "hold",
+            "xp": 20,
+            "detail": "5 × 20-30 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": "站姿壓縮提腿",
+            "kind": "core",
+            "xp": 15,
+            "detail": "4 × 6",
+            "regression": "縮小幅度；腰椎一有感覺就停"
+          },
+          {
+            "name": "柔韌性訓練",
+            "kind": "mobility",
+            "xp": 15,
+            "detail": "12 分鐘",
+            "regression": "只到微微張力，不追深度"
+          }
+        ],
+        "fri": [
+          {
+            "name": "全套柔韌性",
+            "kind": "mobility",
+            "xp": 20,
+            "detail": "20 分鐘",
+            "regression": "只到微微張力，不追深度"
+          },
+          {
+            "name": "自由練習",
+            "kind": "play",
+            "xp": 10,
+            "detail": "10 分鐘",
+            "note": "只玩已熟練的動作，不試新風險",
+            "regression": "只玩已熟練的動作，不試新風險"
+          }
+        ]
+      },
+      "gate": [
+        "自由倒立 5-10 秒 × 3 次",
+        "靠牆倒立 90 秒",
+        "Pike Push-up 4 × 12",
+        "伏地挺身 4 × 20",
+        "引體向上 4 × 6",
+        "L-sit（直腿）20 秒"
+      ],
+      "gate_note": "至少三次連續訓練都達標才進 Phase 2。"
+    },
+    "phase2": {
+      "title": "結構建設",
+      "weeks": 12,
+      "weeks_range": [
+        19,
+        30
+      ],
+      "focus": "自由倒立 20-30 秒與 Headstand Press 的力量結構。",
+      "day_meta": {
+        "mon": {
+          "label": "力量＋過頭支撐",
+          "place": "chocoZAP",
+          "minutes": "50"
+        },
+        "tue": {
+          "label": "倒立控制 A",
+          "place": "九龍公園",
+          "minutes": "45-50"
+        },
+        "wed": {
+          "label": "力量（推）",
+          "place": "chocoZAP",
+          "minutes": "50"
+        },
+        "thu": {
+          "label": "Headstand Press",
+          "place": "九龍公園",
+          "minutes": "45-50"
+        },
+        "fri": {
+          "label": "柔韌＋Volume（可選）",
+          "place": "九龍公園草地",
+          "minutes": "30",
+          "optional": true
+        }
+      },
+      "days": {
+        "mon": [
+          {
+            "name": "肩推",
+            "kind": "strength",
+            "xp": 25,
+            "detail": "5 × 6-8",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "Dip（雙槓）",
+            "kind": "strength",
+            "xp": 25,
+            "detail": "4 × 8",
+            "regression": "彈帶輔助，或腳撐地分擔"
+          },
+          {
+            "name": "HSPU 预备（Pike 抬高腳）",
+            "kind": "strength",
+            "xp": 25,
+            "detail": "4 × 6",
+            "regression": "腳不抬高版"
+          },
+          {
+            "name": "空心體",
+            "kind": "core",
+            "xp": 15,
+            "detail": "4 × 45 秒",
+            "regression": "縮小幅度；腰椎一有感覺就停"
+          }
+        ],
+        "tue": [
+          {
+            "name": "手腕熱身",
+            "kind": "warmup",
+            "xp": 10,
+            "detail": "5 分鐘",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "自由倒立",
+            "kind": "hold",
+            "xp": 35,
+            "detail": "8 × 10-15 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": "控制回落練習",
+            "kind": "skill",
+            "xp": 25,
+            "detail": "5 × 3",
+            "note": "⚠️ 練「安全落地」比練更久更重要",
+            "regression": "降一階變體，或只做離心半程"
+          },
+          {
+            "name": "L-sit on bars",
+            "kind": "hold",
+            "xp": 20,
+            "detail": "5 × 15 秒",
+            "regression": "屈膝"
+          },
+          {
+            "name": "柔韌性訓練",
+            "kind": "mobility",
+            "xp": 15,
+            "detail": "12 分鐘",
+            "regression": "只到微微張力，不追深度"
+          }
+        ],
+        "wed": [
+          {
+            "name": "引體向上（加重或體重）",
+            "kind": "strength",
+            "xp": 25,
+            "detail": "5 × 5",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "高拉背",
+            "kind": "strength",
+            "xp": 20,
+            "detail": "4 × 10",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "懸掛舉腿（直腿）",
+            "kind": "core",
+            "xp": 25,
+            "detail": "4 × 8",
+            "regression": "屈膝"
+          },
+          {
+            "name": "侧槓（Side Plank）",
+            "kind": "core",
+            "xp": 15,
+            "detail": "3 × 30 秒/側",
+            "regression": "縮小幅度；腰椎一有感覺就停"
+          }
+        ],
+        "thu": [
+          {
+            "name": "手腕熱身",
+            "kind": "warmup",
+            "xp": 10,
+            "detail": "5 分鐘",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "Headstand（三點）",
+            "kind": "hold",
+            "xp": 25,
+            "detail": "5 × 45-60 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": "頭倒立單腳提起",
+            "kind": "skill",
+            "xp": 25,
+            "detail": "5 × 3",
+            "regression": "降一階變體，或只做離心半程"
+          },
+          {
+            "name": "Headstand Press 嘗試",
+            "kind": "skill",
+            "xp": 35,
+            "detail": "6 × 嘗試",
+            "note": "⚠️ 收緊核心、腳跟贴臀；失敗就側翻落地",
+            "regression": "降一階變體，或只做離心半程"
+          },
+          {
+            "name": "柔韌性訓練",
+            "kind": "mobility",
+            "xp": 15,
+            "detail": "12 分鐘",
+            "regression": "只到微微張力，不追深度"
+          }
+        ],
+        "fri": [
+          {
+            "name": "輕量倒立 volume",
+            "kind": "play",
+            "xp": 20,
+            "detail": "8 × 5 秒",
+            "regression": "只玩已熟練的動作，不試新風險"
+          },
+          {
+            "name": "全套柔韌性",
+            "kind": "mobility",
+            "xp": 20,
+            "detail": "20 分鐘",
+            "regression": "只到微微張力，不追深度"
+          }
+        ]
+      },
+      "gate": [
+        "自由倒立 20-30 秒 × 2",
+        "Headstand 60 秒穩定",
+        "Headstand Press 成功 3 次",
+        "L-sit 30 秒",
+        "Pike PU 4 × 15 或 HSPU 4 × 6"
+      ],
+      "gate_note": "心理關卡（怕摔）也算 gate：能在無人扶持下從容落地再進。"
+    },
+    "phase3": {
+      "title": "進階工程",
+      "weeks": 14,
+      "weeks_range": [
+        31,
+        44
+      ],
+      "focus": "Straddle Press 的離心控制與抬高面練習；品質優先於次數。",
+      "day_meta": {
+        "mon": {
+          "label": "壓力量",
+          "place": "chocoZAP",
+          "minutes": "50"
+        },
+        "tue": {
+          "label": "Press 專項 A",
+          "place": "九龍公園",
+          "minutes": "50"
+        },
+        "wed": {
+          "label": "力量＋壓縮",
+          "place": "chocoZAP",
+          "minutes": "50"
+        },
+        "thu": {
+          "label": "Press 專項 B",
+          "place": "九龍公園",
+          "minutes": "50"
+        },
+        "fri": {
+          "label": "技術與恢復（可選）",
+          "place": "九龍公園草地",
+          "minutes": "30",
+          "optional": true
+        }
+      },
+      "days": {
+        "mon": [
+          {
+            "name": "站姿槓鈴／器械肩推",
+            "kind": "strength",
+            "xp": 30,
+            "detail": "5 × 5",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "Dip 加重",
+            "kind": "strength",
+            "xp": 25,
+            "detail": "4 × 6",
+            "regression": "體重 4 × 10"
+          },
+          {
+            "name": "Rack HSPU",
+            "kind": "strength",
+            "xp": 30,
+            "detail": "5 × 3-5",
+            "regression": "仍用 Pike 抬高版"
+          },
+          {
+            "name": "Handstand 靠牆負重支撐",
+            "kind": "hold",
+            "xp": 20,
+            "detail": "4 × 40 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          }
+        ],
+        "tue": [
+          {
+            "name": "手腕熱身",
+            "kind": "warmup",
+            "xp": 10,
+            "detail": "5 分鐘",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "Straddle Press 離心（Negative）",
+            "kind": "assess",
+            "xp": 35,
+            "detail": "6 × 5 秒慢放",
+            "note": "⚠️ 全程控制，塌肩立即中止",
+            "regression": "照前一階的標準自查，這次不算失敗"
+          },
+          {
+            "name": "抬高面 Straddle Press",
+            "kind": "skill",
+            "xp": 30,
+            "detail": "6 × 嘗試",
+            "regression": "面再高一點（更陡＝更容易）"
+          },
+          {
+            "name": "自由倒立",
+            "kind": "hold",
+            "xp": 25,
+            "detail": "5 × 15-25 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": "柔韌性訓練（Pancake 加重）",
+            "kind": "mobility",
+            "xp": 20,
+            "detail": "15 分鐘",
+            "regression": "只到微微張力，不追深度"
+          }
+        ],
+        "wed": [
+          {
+            "name": "引體向上",
+            "kind": "strength",
+            "xp": 25,
+            "detail": "5 × 5",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "單臂懸掛（輪替）",
+            "kind": "strength",
+            "xp": 20,
+            "detail": "4 × 20 秒/側",
+            "regression": "雙手懸掛＋收肩"
+          },
+          {
+            "name": "地面 L-sit",
+            "kind": "hold",
+            "xp": 25,
+            "detail": "5 × 25 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": " Compression 系列",
+            "kind": "core",
+            "xp": 20,
+            "detail": "3 × 10",
+            "regression": "縮小幅度；腰椎一有感覺就停"
+          }
+        ],
+        "thu": [
+          {
+            "name": "手腕熱身",
+            "kind": "warmup",
+            "xp": 10,
+            "detail": "5 分鐘",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "Tuck-to-Handstand 壓上",
+            "kind": "skill",
+            "xp": 35,
+            "detail": "6 × 嘗試",
+            "regression": "降一階變體，或只做離心半程"
+          },
+          {
+            "name": "Straddle 靜態壓縮",
+            "kind": "hold",
+            "xp": 25,
+            "detail": "5 × 20 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": "倒立控制（自由）",
+            "kind": "hold",
+            "xp": 30,
+            "detail": "6 × 15 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          },
+          {
+            "name": "落地安全練習（側翻／頭前）",
+            "kind": "assess",
+            "xp": 15,
+            "detail": "4 × 3",
+            "regression": "照前一階的標準自查，這次不算失敗"
+          }
+        ],
+        "fri": [
+          {
+            "name": "輕量技術",
+            "kind": "play",
+            "xp": 20,
+            "detail": "10 分鐘",
+            "regression": "只玩已熟練的動作，不試新風險"
+          },
+          {
+            "name": "恢復与拉伸",
+            "kind": "mobility",
+            "xp": 15,
+            "detail": "15 分鐘",
+            "regression": "只到微微張力，不追深度"
+          }
+        ]
+      },
+      "gate": [
+        "Straddle Negative 全程 5 秒 × 3",
+        "抬高面 Straddle Press 3 種高度成功",
+        "自由倒立 45 秒",
+        "L-sit 40 秒",
+        "Compression：腳尖能舉過頭高度 3 次"
+      ],
+      "gate_note": "任何一個關節出現刺痛 ⇒ 本週退回前一階，不算失敗。"
+    },
+    "phase4": {
+      "title": "目標衝刺",
+      "weeks": 8,
+      "weeks_range": [
+        45,
+        52
+      ],
+      "focus": "首次完整 Straddle Press ＋把成果鞏固成可重複的能力。",
+      "day_meta": {
+        "mon": {
+          "label": "力量維持",
+          "place": "chocoZAP",
+          "minutes": "45"
+        },
+        "tue": {
+          "label": "Press 衝刺 A",
+          "place": "九龍公園",
+          "minutes": "50"
+        },
+        "wed": {
+          "label": "恢復＋柔韌",
+          "place": "chocoZAP",
+          "minutes": "40"
+        },
+        "thu": {
+          "label": "Press 衝刺 B",
+          "place": "九龍公園",
+          "minutes": "50"
+        },
+        "fri": {
+          "label": "自由練習（可選）",
+          "place": "九龍公園草地",
+          "minutes": "30",
+          "optional": true
+        }
+      },
+      "days": {
+        "mon": [
+          {
+            "name": "肩推（維持量）",
+            "kind": "strength",
+            "xp": 25,
+            "detail": "4 × 5",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "Dip",
+            "kind": "strength",
+            "xp": 20,
+            "detail": "4 × 6",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "空心體",
+            "kind": "core",
+            "xp": 15,
+            "detail": "4 × 60 秒",
+            "regression": "縮小幅度；腰椎一有感覺就停"
+          }
+        ],
+        "tue": [
+          {
+            "name": "手腕熱身",
+            "kind": "warmup",
+            "xp": 10,
+            "detail": "5 分鐘",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "Straddle Press（完整嘗試）",
+            "kind": "skill",
+            "xp": 40,
+            "detail": "8 × 嘗試",
+            "note": "⚠️ 精神狀態不佳就只做離心；強行嘗試是這個階段最大的受傷來源",
+            "regression": "降一階變體，或只做離心半程"
+          },
+          {
+            "name": "抬高面逐步降高度",
+            "kind": "skill",
+            "xp": 30,
+            "detail": "5 × 嘗試",
+            "regression": "降一階變體，或只做離心半程"
+          },
+          {
+            "name": "自由倒立",
+            "kind": "hold",
+            "xp": 25,
+            "detail": "4 × 25 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          }
+        ],
+        "wed": [
+          {
+            "name": "輕重量全身維持",
+            "kind": "strength",
+            "xp": 20,
+            "detail": "3 × 12",
+            "regression": "減 1/3 次數，或改用退階體式"
+          },
+          {
+            "name": "柔韌與手腕",
+            "kind": "mobility",
+            "xp": 20,
+            "detail": "20 分鐘",
+            "regression": "只到微微張力，不追深度"
+          }
+        ],
+        "thu": [
+          {
+            "name": "手腕熱身",
+            "kind": "warmup",
+            "xp": 10,
+            "detail": "5 分鐘",
+            "regression": "坐姿或靠牆做，減少手腕承重"
+          },
+          {
+            "name": "Straddle Press（完整嘗試）",
+            "kind": "skill",
+            "xp": 40,
+            "detail": "8 × 嘗試",
+            "regression": "降一階變體，或只做離心半程"
+          },
+          {
+            "name": "Pike Press 嘗試",
+            "kind": "skill",
+            "xp": 35,
+            "detail": "5 × 嘗試",
+            "regression": "降一階變體，或只做離心半程"
+          },
+          {
+            "name": "倒立穩定度",
+            "kind": "hold",
+            "xp": 25,
+            "detail": "5 × 20 秒",
+            "regression": "時間減半、組數減 1（寧短不塌）"
+          }
+        ],
+        "fri": [
+          {
+            "name": "Play：把會的東西練漂亮",
+            "kind": "play",
+            "xp": 25,
+            "detail": "15 分鐘",
+            "regression": "只玩已熟練的動作，不試新風險"
+          }
+        ]
+      },
+      "gate": [
+        "必達：自由倒立 30 秒 ＋ Headstand Press ＋ Straddle Negative 全程控制",
+        "挑戰：首次完整 Straddle Press",
+        "延伸：Straddle Press 連續 3 次"
+      ],
+      "gate_note": "分層目標：必達沒有的話，挑戰與延伸都不該優先——先補必達。"
+    }
+  }
+}

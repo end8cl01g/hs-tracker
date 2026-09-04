@@ -17,6 +17,7 @@ import { CharacterStats, RustWasmStats } from '../types';
 import { INITIAL_SKILLS } from '../data/skyrimData';
 import { rustEngine } from '../services/rustBridge';
 import { skyrimAudio } from '../services/audioService';
+import { badgeDefs } from '../domain/data';
 
 interface CharacterStatsViewProps {
   character: CharacterStats;
@@ -172,7 +173,7 @@ export const CharacterStatsView: React.FC<CharacterStatsViewProps> = ({
           <div className="bg-[#0a0a0a] border border-[#222] p-3 rounded flex items-center gap-2.5">
             <Coins className="w-5 h-5 text-[#c4a000]" />
             <div>
-              <div className="text-[9px] text-[#666] uppercase font-serif tracking-wider">GOLD</div>
+              <div className="text-[9px] text-[#666] uppercase font-serif tracking-wider">STREAK（天）</div>
               <div className="text-sm font-bold text-[#c4a000] font-mono">{character.gold.toLocaleString()}</div>
             </div>
           </div>
@@ -180,7 +181,7 @@ export const CharacterStatsView: React.FC<CharacterStatsViewProps> = ({
           <div className="bg-[#0a0a0a] border border-[#222] p-3 rounded flex items-center gap-2.5">
             <Flame className="w-5 h-5 text-[#72ffff]" />
             <div>
-              <div className="text-[9px] text-[#666] uppercase font-serif tracking-wider">DRAGON SOULS</div>
+              <div className="text-[9px] text-[#666] uppercase font-serif tracking-wider">BADGES</div>
               <div className="text-sm font-bold text-[#72ffff] font-mono">{character.dragonSouls}</div>
             </div>
           </div>
@@ -196,9 +197,9 @@ export const CharacterStatsView: React.FC<CharacterStatsViewProps> = ({
           <div className="bg-[#0a0a0a] border border-[#222] p-3 rounded flex items-center gap-2.5">
             <Award className="w-5 h-5 text-emerald-400" />
             <div>
-              <div className="text-[9px] text-[#666] uppercase font-serif tracking-wider">LEGENDARY RESETS</div>
+              <div className="text-[9px] text-[#666] uppercase font-serif tracking-wider">TOTAL XP</div>
               <div className="text-sm font-bold text-emerald-400 font-mono">
-                {Object.values(character.legendarySkills).reduce((a: number, b: number) => a + (b || 0), 0)}
+                {(character.hs?.derived?.totalXP ?? 0).toLocaleString()}
               </div>
             </div>
           </div>
@@ -316,10 +317,10 @@ export const CharacterStatsView: React.FC<CharacterStatsViewProps> = ({
           </div>
         </div>
 
-        {/* 18 Skills Overview Table */}
+        {/* 全技能總覽（8 分支 / 33 星位） */}
         <div className="bg-[#0a0a0a] border border-[#222] p-3.5 rounded-lg">
           <h3 className="text-[10px] font-serif uppercase tracking-[0.2em] text-[#c4a000] mb-2.5">
-            ALL SKILLS (18 DISCIPLINES)
+            ALL SKILLS (8 DISCIPLINES · 掌握度)
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-xs">
             {INITIAL_SKILLS.map((skill) => {
@@ -343,6 +344,68 @@ export const CharacterStatsView: React.FC<CharacterStatsViewProps> = ({
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* 徽章牆（badges.json · 15 枚） */}
+        <div className="bg-[#0a0a0a] border border-[#222] p-3.5 rounded-lg">
+          <h3 className="text-[10px] font-serif uppercase tracking-[0.2em] text-[#c4a000] mb-2.5 flex items-center gap-1.5">
+            <Award className="w-3.5 h-3.5" />
+            <span>BADGES（{character.hs?.badges?.length ?? 0} / {badgeDefs.length}）</span>
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-xs">
+            {badgeDefs.map((b) => {
+              const earned = (character.hs?.badges ?? []).includes(b.id);
+              return (
+                <div
+                  key={b.id}
+                  title={b.desc || b.name}
+                  className={`p-2 rounded border flex flex-col gap-1 ${
+                    earned
+                      ? 'bg-[#111] border-[#c4a000]/60 shadow-[0_0_8px_rgba(196,160,0,0.25)]'
+                      : 'bg-[#0d0d0d] border-[#1e1e1e] opacity-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-base leading-none">{b.icon}</span>
+                    <span
+                      className={`text-[9px] font-mono ${
+                        earned ? 'text-[#c4a000]' : 'text-[#555]'
+                      }`}
+                    >
+                      {earned ? '✓' : `${b.op || '>='} ${b.value}`}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-[11px] font-serif truncate ${
+                      earned ? 'text-[#e8e0c8]' : 'text-[#666]'
+                    }`}
+                  >
+                    {b.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 52 週計畫里程碑 */}
+        <div className="bg-[#0a0a0a] border border-[#222] p-3.5 rounded-lg">
+          <h3 className="text-[10px] font-serif uppercase tracking-[0.2em] text-[#c4a000] mb-2.5 flex items-center gap-1.5">
+            <Terminal className="w-3.5 h-3.5" />
+            <span>52-WEEK PLAN MILESTONES</span>
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            {[
+              ['總訓練日', `${character.hs?.derived?.totalSessions ?? 0} 天`],
+              ['最長連續', `${character.hs?.derived?.longestStreak ?? 0} 天`],
+              ['目前階段', `Phase ${character.hs?.derived?.currentPhase ?? 0} · 第 ${character.hs?.derived?.weekNumber ?? 0} 週`],
+            ].map(([k, v]) => (
+              <div key={k} className="bg-[#111] p-2.5 rounded border border-[#222] flex items-center justify-between">
+                <span className="text-[10px] text-[#666] font-serif uppercase tracking-wider">{k}</span>
+                <span className="text-xs font-mono font-bold text-white">{v}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

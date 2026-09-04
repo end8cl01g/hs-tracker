@@ -12,6 +12,9 @@ export interface PerkNode {
   prerequisites: string[]; // Parent perk IDs
   rank?: number;
   maxRank?: number;
+  // Press-to-Handstand domain gates (merged from hs-tracker skills.json)
+  min_xp?: number;
+  min_streak?: number;
 }
 
 export interface SkillDefinition {
@@ -70,6 +73,42 @@ export interface CharacterStats {
   skills: Record<string, number>; // skillId -> level (15-100)
   legendarySkills: Record<string, number>; // skillId -> count of legendary resets
   unlockedPerks: string[]; // List of perk IDs
+  hs?: HSEmbedded; // Press-to-Handstand domain state (single source of truth)
+}
+
+/**
+ * Press-to-Handstand domain state，嵌入在角色檔內一起存檔。
+ * history[date] = 該日已完成 objective id 清單（id 格式 `hs|<date>|<dayKey>|<idx>`）。
+ */
+export interface HSEmbedded {
+  v: number;
+  startedAt: string; // 'YYYY-MM-DD'，用於階段推導
+  history: Record<string, string[]>;
+  gateDone: string[]; // 階段關卡已完成 objective id
+  unlockedSkills: string[]; // 技能樹節點 id
+  badges: string[]; // 已獲得徽章 id
+  customQuests: Quest[];
+  activeIds: string[]; // 羅盤追蹤中的 quest id
+  profile: {
+    name?: string;
+    race?: string;
+    health?: number;
+    maxHealth?: number;
+    magicka?: number;
+    maxMagicka?: number;
+    stamina?: number;
+    maxStamina?: number;
+  };
+  derived?: HSDerived;
+}
+
+export interface HSDerived {
+  totalXP: number;
+  streak: number;
+  longestStreak: number;
+  totalSessions: number;
+  currentPhase: number;
+  weekNumber: number;
 }
 
 export interface SaveSlot {

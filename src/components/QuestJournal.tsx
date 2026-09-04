@@ -186,7 +186,7 @@ export const QuestJournal: React.FC<QuestJournalProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search quests, holds, dungeons..."
+              placeholder="搜尋課表、動作、地點..."
               className="w-full pl-8 pr-3 py-1.5 bg-[#111] border border-[#333] rounded text-xs text-white placeholder-[#666] focus:outline-none focus:border-[#c4a000] font-serif"
             />
           </div>

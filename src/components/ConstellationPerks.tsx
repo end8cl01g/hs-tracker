@@ -9,25 +9,26 @@ import {
   Info,
   CheckCircle2,
   Lock,
-  Plus,
-  Minus,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SkillDefinition, PerkNode, CharacterStats } from '../types';
 import { INITIAL_SKILLS } from '../data/skyrimData';
-import { rustEngine } from '../services/rustBridge';
+import { canUnlockSkillNode } from '../domain/rules';
 import { skyrimAudio } from '../services/audioService';
 
 interface ConstellationPerksProps {
   character: CharacterStats;
   onUpdateCharacter: (updater: (prev: CharacterStats) => CharacterStats) => void;
   onShowNotification: (title: string, subtitle: string) => void;
+  /** 技能樹解鎖必須寫回領域狀態（unlockedSkills），不能只改推導後的 character */
+  onUnlockSkill: (nodeId: string) => void;
 }
 
 export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
   character,
-  onUpdateCharacter,
+  onUpdateCharacter: _onUpdateCharacter,
   onShowNotification,
+  onUnlockSkill,
 }) => {
   const [selectedSkillIndex, setSelectedSkillIndex] = useState<number>(0);
   const [selectedPerk, setSelectedPerk] = useState<PerkNode | null>(null);
@@ -43,8 +44,17 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
 
   const currentSkill: SkillDefinition = skills[selectedSkillIndex] || skills[0] || INITIAL_SKILLS[0];
   const currentSkillLevel = character.skills[currentSkill.id] || 15;
-  const isLegendary = (character.legendarySkills[currentSkill.id] || 0) > 0;
-  const legendaryCount = character.legendarySkills[currentSkill.id] || 0;
+
+  // Press-to-Handstand 網域的解鎖門檻：min_xp / min_streak（來自 data/handstand/skills.json）
+  const hsXP = character.hs?.derived?.totalXP ?? 0;
+  const hsStreak = character.hs?.derived?.streak ?? 0;
+  const requirementMet = (perk: PerkNode) =>
+    hsXP >= (perk.min_xp ?? 0) && hsStreak >= (perk.min_streak ?? 0);
+  const requirementLabel = (perk: PerkNode) => {
+    const parts: string[] = [`${perk.min_xp ?? 0} XP`];
+    if (perk.min_streak) parts.push(`Streak ${perk.min_streak}`);
+    return parts.join(' · ');
+  };
 
   // Change selected skill
   const handlePrevSkill = () => {
@@ -59,88 +69,27 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
     setSelectedSkillIndex((prev) => (prev < skills.length - 1 ? prev + 1 : 0));
   };
 
-  // Adjust skill level
-  const handleAdjustSkillLevel = (delta: number) => {
-    const newLvl = Math.max(15, Math.min(100, currentSkillLevel + delta));
-    if (newLvl === currentSkillLevel) return;
-
-    skyrimAudio.playCheckbox();
-    onUpdateCharacter((prev) => {
-      const updatedSkills = { ...prev.skills, [currentSkill.id]: newLvl };
-      // Recalculate character level from all skills via Rust Wasm
-      const levelCalc = rustEngine.calculateCharacterLevel(updatedSkills);
-      const levelGained = levelCalc.level > prev.level;
-
-      if (levelGained) {
-        skyrimAudio.playLevelUp();
-        onShowNotification('LEVEL UP!', `角色已晉升至等級 ${levelCalc.level}！獲得天賦點數！`);
-      }
-
-      return {
-        ...prev,
-        skills: updatedSkills,
-        level: levelCalc.level,
-        currentXp: levelCalc.currentXp,
-        requiredXp: levelCalc.requiredXp,
-        perkPoints: levelGained ? prev.perkPoints + (levelCalc.level - prev.level) : prev.perkPoints,
-      };
-    });
-  };
-
-  // Trigger Legendary reset
-  const handleMakeLegendary = () => {
-    if (currentSkillLevel < 100) return;
-
-    // Count unlocked perks in this skill
-    const skillPerkIds = currentSkill.perks.map((p) => p.id);
-    const investedPerks = character.unlockedPerks.filter((id) => skillPerkIds.includes(id));
-    const refundedPoints = rustEngine.calculateLegendaryRefund(investedPerks.length);
-
-    skyrimAudio.playLevelUp();
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#d4af37', '#60a5fa', '#f59e0b'],
-    });
-
-    onUpdateCharacter((prev) => ({
-      ...prev,
-      skills: {
-        ...prev.skills,
-        [currentSkill.id]: 15,
-      },
-      legendarySkills: {
-        ...prev.legendarySkills,
-        [currentSkill.id]: (prev.legendarySkills[currentSkill.id] || 0) + 1,
-      },
-      perkPoints: prev.perkPoints + refundedPoints,
-      unlockedPerks: prev.unlockedPerks.filter((id) => !skillPerkIds.includes(id)),
-    }));
-
-    onShowNotification(
-      'SKILL LEGENDARY!',
-      `${currentSkill.name} 已晉升傳奇！重置為 15 級並返還 ${refundedPoints} 點天賦！`
-    );
-  };
-
-  // Unlock Perk action
+  // Unlock Perk action —— 採用舊 hs-tracker 的解鎖規則：
+  // requires 全解鎖 + 總 XP ≥ min_xp + 有技能點 + streak ≥ min_streak（不可 respec）
   const handleUnlockPerk = (perk: PerkNode) => {
-    // Validate prerequisites
-    const prereqsMet =
-      perk.prerequisites.length === 0 ||
-      perk.prerequisites.every((pid) => character.unlockedPerks.includes(pid));
+    const gate = canUnlockSkillNode(perk, {
+      totalXP: hsXP,
+      streak: hsStreak,
+      points: character.perkPoints,
+      unlockedPerks: character.unlockedPerks,
+    });
 
-    // Rust Wasm validation
-    const canUnlock = rustEngine.validatePerkFast(
-      currentSkillLevel,
-      perk.requiredSkillLevel,
-      prereqsMet,
-      character.perkPoints
-    );
-
-    if (!canUnlock) {
+    if (!gate.ok) {
       skyrimAudio.playCheckbox();
+      const whyText: Record<string, string> = {
+        already: '此星位已點亮。',
+        deps: '前置星位尚未點亮。',
+        xp: `總 XP 不足：需要 ${gate.need} XP（目前 ${hsXP}）`,
+        'no-points': '沒有可用技能點——升級可獲得點數。',
+        streak: `連續訓練天數不足：需要 ${gate.need} 天`,
+        'no-node': '找不到技能節點。',
+      };
+      onShowNotification('LOCKED', whyText[gate.why || ''] || '條件未滿足。');
       return;
     }
 
@@ -153,13 +102,10 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
       colors: ['#67e8f9', '#38bdf8', '#fbbf24'],
     });
 
-    onUpdateCharacter((prev) => ({
-      ...prev,
-      perkPoints: prev.perkPoints - 1,
-      unlockedPerks: [...prev.unlockedPerks, perk.id],
-    }));
+    // 寫回領域狀態（unlockedSkills）；XP／點數由 derive 統一重算
+    onUnlockSkill(perk.id);
 
-    onShowNotification('PERK UNLOCKED', `星位點亮：${perk.name} (${perk.nameEn})`);
+    onShowNotification('PERK UNLOCKED', `星位點亮：${perk.name}（+50 XP）`);
   };
 
   // Touch & Mouse Drag handlers for celestial navigation
@@ -247,47 +193,19 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
               <span className="text-[11px] text-[#c4a000] tracking-[0.2em] uppercase font-light">
                 {currentSkill.nameEn}
               </span>
-              {isLegendary && (
-                <span className="flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-[#c4a000]/10 border border-[#c4a000]/60 text-[#c4a000] text-[9px] font-bold">
-                  <Award className="w-3 h-3 text-[#c4a000]" />
-                  <span>LEGENDARY {legendaryCount > 1 ? `x${legendaryCount}` : ''}</span>
-                </span>
-              )}
             </div>
 
-            {/* Skill Level and Quick +/- Adjuster */}
+            {/* 掌握度（已解鎖星位比例）——由領域狀態推導，不可手調 */}
             <div className="flex items-center gap-2.5 mt-1">
-              <button
-                onClick={() => handleAdjustSkillLevel(-1)}
-                disabled={currentSkillLevel <= 15}
-                className="w-6 h-6 rounded bg-[#111] border border-[#333] text-[#888] hover:text-white flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <Minus className="w-3 h-3" />
-              </button>
-
               <div className="flex items-center gap-1.5 font-serif">
-                <span className="text-xs text-[#888] tracking-widest uppercase">LEVEL</span>
+                <span className="text-xs text-[#888] tracking-widest uppercase">MASTERY</span>
                 <span className="text-sm font-bold text-[#c4a000]">{currentSkillLevel}</span>
                 <span className="text-xs text-[#555]">/ 100</span>
               </div>
-
-              <button
-                onClick={() => handleAdjustSkillLevel(1)}
-                disabled={currentSkillLevel >= 100}
-                className="w-6 h-6 rounded bg-[#111] border border-[#333] text-[#888] hover:text-white flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <Plus className="w-3 h-3" />
-              </button>
-
-              {/* Legendary Button when skill is 100 */}
-              {currentSkillLevel >= 100 && (
-                <button
-                  onClick={handleMakeLegendary}
-                  className="px-2.5 py-0.5 ml-2 bg-[#c4a000] hover:bg-[#d4af37] text-black font-bold text-[9px] tracking-wider uppercase rounded shadow-[0_0_8px_#c4a000] animate-pulse"
-                >
-                  MAKE LEGENDARY
-                </button>
-              )}
+              <span className="text-[10px] text-[#72ffff] font-mono">
+                {currentSkill.perks.filter((p) => character.unlockedPerks.includes(p.id)).length}
+                /{currentSkill.perks.length} 星位
+              </span>
             </div>
           </div>
 
@@ -361,7 +279,7 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
               const isChildUnlocked = character.unlockedPerks.includes(perk.id);
               const isChildAvailable =
                 isParentUnlocked &&
-                currentSkillLevel >= perk.requiredSkillLevel &&
+                requirementMet(perk) &&
                 !isChildUnlocked;
 
               const lineStroke =
@@ -418,7 +336,7 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
               perk.prerequisites.length === 0 ||
               perk.prerequisites.every((pid) => character.unlockedPerks.includes(pid));
             const isAvailable =
-              !isUnlocked && prereqsMet && currentSkillLevel >= perk.requiredSkillLevel;
+              !isUnlocked && prereqsMet && requirementMet(perk);
             const isSelected = selectedPerk?.id === perk.id;
 
             return (
@@ -569,7 +487,7 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
             <div className="flex justify-between items-center text-[10px] tracking-widest pt-2 border-t border-[#222] mb-3">
               <span className="opacity-40 uppercase">REQUIREMENT</span>
               <span className="text-[#72ffff] font-mono">
-                {currentSkill.nameEn.toUpperCase()} {selectedPerk.requiredSkillLevel}
+                {requirementLabel(selectedPerk)}
               </span>
             </div>
 
@@ -585,7 +503,7 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
                   onClick={() => handleUnlockPerk(selectedPerk)}
                   disabled={
                     character.perkPoints < 1 ||
-                    currentSkillLevel < selectedPerk.requiredSkillLevel ||
+                    !requirementMet(selectedPerk) ||
                     (selectedPerk.prerequisites.length > 0 &&
                       !selectedPerk.prerequisites.every((pid) =>
                         character.unlockedPerks.includes(pid)

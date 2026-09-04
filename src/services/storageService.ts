@@ -1,76 +1,61 @@
+/**
+ * src/services/storageService.ts — 離線存檔服務（localStorage）。
+ * API 面與原 Test3 版完全相容（SaveManagerView 不用改），
+ * 但唯一真相是 character.hs（Press-to-Handstand 領域狀態）；
+ * quests 只是推導結果，載入時一律由領域狀態重建。
+ */
 import { CharacterStats, Quest, SaveSlot } from '../types';
-import { INITIAL_CHARACTER, INITIAL_QUESTS } from '../data/skyrimData';
+import { deriveSnapshot, applyProfileUpdate } from '../domain/adapters';
+import { normalizeHS, newHSState } from '../domain/state';
 import { rustEngine } from './rustBridge';
 
-const STORAGE_KEY = 'SKYRIM_OFFLINE_SAVES_V1';
-const CURRENT_STATE_KEY = 'SKYRIM_CURRENT_STATE_V1';
+const STORAGE_KEY = 'HS_SKYRIM_SLOTS_V1';
+const CURRENT_STATE_KEY = 'HS_SKYRIM_CURRENT_V1';
 
-export interface StorageState {
-  currentSlotId: string;
-  character: CharacterStats;
-  quests: Quest[];
-  slots: SaveSlot[];
-}
-
-export class SkyrimStorageService {
-  /**
-   * Load current state or fallback to default
-   */
+export class HsStorageService {
+  /** 載入目前狀態；沒有就回初始（全新 52 週計畫） */
   public loadState(): { character: CharacterStats; quests: Quest[]; slots: SaveSlot[] } {
     try {
       const savedState = localStorage.getItem(CURRENT_STATE_KEY);
-      const savedSlots = localStorage.getItem(STORAGE_KEY);
-
-      const slots: SaveSlot[] = savedSlots ? JSON.parse(savedSlots) : [];
-
       if (savedState) {
         const parsed = JSON.parse(savedState);
+        const hs = normalizeHS(parsed?.character?.hs);
+        const snap = deriveSnapshot(hs);
+        const savedSlots = localStorage.getItem(STORAGE_KEY);
+        const slots: SaveSlot[] = savedSlots ? JSON.parse(savedSlots) : [];
         return {
-          character: parsed.character || INITIAL_CHARACTER,
-          quests: parsed.quests || INITIAL_QUESTS,
-          slots: slots.length > 0 ? slots : this.createInitialSlots(parsed.character, parsed.quests),
+          character: snap.character,
+          quests: snap.quests,
+          slots: slots.length > 0 ? slots : this.createInitialSlots(snap.character, snap.quests),
         };
       }
-
-      const initialSlots = this.createInitialSlots(INITIAL_CHARACTER, INITIAL_QUESTS);
-      return {
-        character: INITIAL_CHARACTER,
-        quests: INITIAL_QUESTS,
-        slots: initialSlots,
-      };
     } catch (e) {
       console.error('Failed to load from local storage:', e);
-      return {
-        character: INITIAL_CHARACTER,
-        quests: INITIAL_QUESTS,
-        slots: this.createInitialSlots(INITIAL_CHARACTER, INITIAL_QUESTS),
-      };
     }
+    const snap = deriveSnapshot(newHSState());
+    return {
+      character: snap.character,
+      quests: snap.quests,
+      slots: this.createInitialSlots(snap.character, snap.quests),
+    };
   }
 
-  /**
-   * Auto-save active state to local storage
-   */
-  public saveCurrentState(character: CharacterStats, quests: Quest[]) {
+  /** 自動存檔：把 character.hs（領域真相）寫回 localStorage */
+  public saveCurrentState(character: CharacterStats, _quests: Quest[]) {
     try {
-      const data = {
-        character,
-        quests,
-        savedAt: Date.now(),
-      };
-      const json = JSON.stringify(data);
+      const hs = normalizeHS(character?.hs);
+      const json = JSON.stringify({ hs, savedAt: Date.now() });
       localStorage.setItem(CURRENT_STATE_KEY, json);
-
-      // Also update AutoSave slot
-      this.updateAutoSaveSlot(character, quests);
+      this.updateAutoSaveSlot(hs);
     } catch (e) {
       console.error('AutoSave failed:', e);
     }
   }
 
-  private updateAutoSaveSlot(character: CharacterStats, quests: Quest[]) {
+  private updateAutoSaveSlot(hs: ReturnType<typeof normalizeHS>) {
     const slots = this.loadSlots();
-    const jsonStr = JSON.stringify({ character, quests });
+    const snap = deriveSnapshot(hs);
+    const jsonStr = JSON.stringify({ character: snap.character, quests: snap.quests });
     const checksum = rustEngine.computeSaveChecksum(jsonStr);
 
     const autoSaveIndex = slots.findIndex((s) => s.isAutoSave);
@@ -78,24 +63,23 @@ export class SkyrimStorageService {
       id: 'autosave',
       name: '自動存檔 (AutoSave)',
       timestamp: Date.now(),
-      character,
-      quests,
+      character: snap.character,
+      quests: snap.quests,
       checksum,
       isAutoSave: true,
     };
 
-    if (autoSaveIndex >= 0) {
-      slots[autoSaveIndex] = newSlot;
-    } else {
-      slots.unshift(newSlot);
-    }
+    if (autoSaveIndex >= 0) slots[autoSaveIndex] = newSlot;
+    else slots.unshift(newSlot);
 
     this.saveSlots(slots);
   }
 
-  public quickSave(character: CharacterStats, quests: Quest[]): SaveSlot {
+  public quickSave(character: CharacterStats, _quests: Quest[]): SaveSlot {
     const slots = this.loadSlots();
-    const jsonStr = JSON.stringify({ character, quests });
+    const hs = normalizeHS(character?.hs);
+    const snap = deriveSnapshot(hs);
+    const jsonStr = JSON.stringify({ character: snap.character, quests: snap.quests });
     const checksum = rustEngine.computeSaveChecksum(jsonStr);
 
     const quickSaveIndex = slots.findIndex((s) => s.isQuickSave);
@@ -103,33 +87,32 @@ export class SkyrimStorageService {
       id: 'quicksave',
       name: '快速存檔 (QuickSave)',
       timestamp: Date.now(),
-      character,
-      quests,
+      character: snap.character,
+      quests: snap.quests,
       checksum,
       isQuickSave: true,
     };
 
-    if (quickSaveIndex >= 0) {
-      slots[quickSaveIndex] = newSlot;
-    } else {
-      slots.splice(1, 0, newSlot);
-    }
+    if (quickSaveIndex >= 0) slots[quickSaveIndex] = newSlot;
+    else slots.splice(1, 0, newSlot);
 
     this.saveSlots(slots);
     return newSlot;
   }
 
-  public manualSave(name: string, character: CharacterStats, quests: Quest[]): SaveSlot {
+  public manualSave(name: string, character: CharacterStats, _quests: Quest[]): SaveSlot {
     const slots = this.loadSlots();
-    const jsonStr = JSON.stringify({ character, quests });
+    const hs = normalizeHS(character?.hs);
+    const snap = deriveSnapshot(hs);
+    const jsonStr = JSON.stringify({ character: snap.character, quests: snap.quests });
     const checksum = rustEngine.computeSaveChecksum(jsonStr);
 
     const newSlot: SaveSlot = {
       id: 'slot_' + Date.now(),
       name: name || `檔案 ${new Date().toLocaleDateString()}`,
       timestamp: Date.now(),
-      character,
-      quests,
+      character: snap.character,
+      quests: snap.quests,
       checksum,
     };
 
@@ -177,17 +160,17 @@ export class SkyrimStorageService {
     return [initial];
   }
 
-  /**
-   * Export save state as .skyrimsave JSON file
-   */
-  public exportSaveFile(character: CharacterStats, quests: Quest[]) {
+  /** 匯出 .skyrimsave 檔（其實是 Press-to-Handstand 進度，保留副檔名相容 UI） */
+  public exportSaveFile(character: CharacterStats, _quests: Quest[]) {
+    const hs = normalizeHS(character?.hs);
+    const snap = deriveSnapshot(hs);
     const savePayload = {
-      format: 'SKYRIM_OFFLINE_SAVE',
+      format: 'HS_SKYRIM_SAVE',
       version: '1.0.0',
       engine: 'Rust+TypeScript WebAssembly',
       exportedAt: new Date().toISOString(),
-      character,
-      quests,
+      character: snap.character,
+      quests: snap.quests,
     };
 
     const json = JSON.stringify(savePayload, null, 2);
@@ -198,27 +181,31 @@ export class SkyrimStorageService {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `SkyrimSave_${character.name.replace(/\s+/g, '_')}_Lvl${character.level}.skyrimsave`;
+    a.download = `HandstandSave_${snap.character.name.replace(/\s+/g, '_')}_Lvl${snap.character.level}.skyrimsave`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
-  /**
-   * Import save file from string or file upload
-   */
+  /** 匯入存檔（接受新格式 HS_SKYRIM_SAVE 與舊版 SKYRIM_OFFLINE_SAVE 的 character.hs） */
   public importSaveFile(jsonString: string): { character: CharacterStats; quests: Quest[] } {
     const parsed = JSON.parse(jsonString);
-    if (!parsed.character || !parsed.quests) {
-      throw new Error('無效的天際省存檔格式 (Invalid Skyrim Save format)');
+    if (!parsed.character || (!parsed.character.hs && !parsed.hs)) {
+      throw new Error('無效的存檔格式 (Invalid save format)');
     }
-    this.saveCurrentState(parsed.character, parsed.quests);
-    return {
-      character: parsed.character,
-      quests: parsed.quests,
-    };
+    const hs = normalizeHS(parsed.hs || parsed.character.hs);
+    const snap = deriveSnapshot(hs);
+    this.saveCurrentState(snap.character, snap.quests);
+    return { character: snap.character, quests: snap.quests };
+  }
+
+  /** 重置（SaveManagerView 的 handleResetToDefault 會帶初始角色呼叫） */
+  public resetToDefault(): { character: CharacterStats; quests: Quest[] } {
+    const snap = deriveSnapshot(newHSState());
+    this.saveCurrentState(snap.character, snap.quests);
+    return snap;
   }
 }
 
-export const storageService = new SkyrimStorageService();
+export const storageService = new HsStorageService();

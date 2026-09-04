@@ -80,7 +80,7 @@ export const SkyrimCompass: React.FC<SkyrimCompassProps> = ({
         {/* Center: Skyrim Nordic Title Sigil */}
         <div className="flex items-center gap-2 text-[#c4a000] tracking-[0.25em] font-light text-xs">
           <span className="text-[9px] opacity-40">❖</span>
-          <span className="font-serif">SKYRIM.IO</span>
+          <span className="font-serif">倒立之殿 · PRESS TO HANDSTAND</span>
           <span className="text-[9px] opacity-40">❖</span>
         </div>
 
