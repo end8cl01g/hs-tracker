@@ -62,6 +62,17 @@ writeFileSync(join(DIST, 'sw.js'), js.replace(/^/m, `/* 由 scripts/web-post.mjs
 const files = {};
 for (const f of walk(DIST)) files[f] = statSync(join(DIST, f)).size;
 delete files['build-info.json'];
+// ③′ index.html 也要帶 build 代號：設定頁/診斷靠這行判斷「你看到的是哪版」，CI 也直接 grep 它
+{
+  const idxP = join(DIST, 'index.html');
+  let html = readFileSync(idxP, 'utf8');
+  html = html.replace(/\s*<meta name="hs:build"[^>]*>/, '');
+  if (!html.includes('hs:build')) {
+    html = html.replace(/<\/head>/i, `  <meta name="hs:build" content="${sha}">\n</head>`);
+    writeFileSync(idxP, html);
+  }
+}
+
 writeFileSync(join(DIST, 'build-info.json'), JSON.stringify({ build: sha, generated_at: new Date().toISOString(), files, precache: precache.length }, null, 2) + '\n');
 const total = Object.values(files).reduce((a, b) => a + b, 0);
 process.stdout.write(`✓ dist 就緒：${walk(DIST).length} 檔、${(total / 1024).toFixed(1)}KB｜PRECACHE ${precache.length} 項｜VERSION=${sha.slice(0, 7)}\n`);

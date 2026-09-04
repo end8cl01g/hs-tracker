@@ -38,10 +38,13 @@ jobs:
         run: |
           test -f dist/index.html
           test -f dist/vendor/sql-wasm.wasm
-          test -f dist/app.js                 # 前端只有一支 bundle（rollup 產物）
+          test -f dist/sw.js
+          # 前端已是 vite：入口只有一支 hashed bundle（dist/app.js 隨舊前端一起捨棄了）
+          [ "$(find dist/assets -name 'index-*.js' | wc -l)" -eq 1 ] || { echo "✗ dist/assets 的入口 js 不是一支 → vite 產物異常"; exit 1; }
+          test -f dist/data/workout.json      # 訓練內容是 PLAN.md 的編譯結果，少了就是資料沒進 dist
           grep -q "${GITHUB_SHA}" dist/sw.js || { echo "✗ sw.js 沒含本次 build 代號 → 改版不會生效"; exit 1; }
           grep -q "${GITHUB_SHA}" dist/index.html || { echo "✗ index.html 沒注入 build 代號 → UI 版號會騙人"; exit 1; }
-          ! grep -rqE "https?://(cdnjs|cdn\.jsdelivr|unpkg|fonts\.googleapis|ajax\.googleapis)\." dist/index.html dist/manifest.json dist/app.js dist/sw.js || { echo "✗ dist 含外部 CDN URL（註解裡提到 cdnjs 是說明，掃 URL 才不會誤判）"; exit 1; }
+          ! grep -rlE "https?://(cdnjs|cdn\.jsdelivr|unpkg|fonts\.googleapis|ajax\.googleapis)\." dist/index.html dist/manifest.json dist/sw.js dist/assets/*.js dist/assets/*.css || { echo "✗ dist 含外部 CDN URL（離線 PWA 紅線；字型必須自架）"; exit 1; }
           echo "dist ok：$(find dist -type f | wc -l) 檔 / $(du -sb dist | cut -f1) bytes"
       - uses: actions/upload-artifact@v4
         with:
