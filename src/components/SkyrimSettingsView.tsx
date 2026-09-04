@@ -328,7 +328,7 @@ export const SkyrimSettingsView: React.FC<SkyrimSettingsViewProps> = ({
                 {urlProblemMsg && <div className="mt-1.5 text-[11px] text-rose-300">不收：{urlProblemMsg}</div>}
               </div>
               <div>
-                <div className="text-[11px] text-stone-500 mb-1">密鑰（SHARED_SECRET，只存本機，不會出現在任何 URL）</div>
+                <div className="text-[11px] text-stone-500 mb-1">密鑰（SHARED_SECRET，只存本機，不會出現在任何 URL）——在 GAS「專案設定 → 指令碼屬性」查，不是 Script ID</div>
                 <input className={field} type="password" value={secret} onChange={(e) => setSecret(e.target.value)} placeholder={`${(secret || '').length ? `已存 ${secret.length} 字元` : '尚未設定'}`} />
               </div>
               <div className="flex flex-wrap gap-2">

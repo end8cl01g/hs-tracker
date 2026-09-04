@@ -233,19 +233,60 @@ async function call(action: string, payload: Record<string, unknown> = {}, opts:
   const peek = looksLikeHtml(text) ? '｜拿到的是 HTML 頁（登入頁/攔截頁），不是 JSON' : `｜${(text || '').slice(0, 90)}`;
   if (!res.ok) throw new GasError('http', `GAS 回 ${res.status}${peek}`, { status: res.status });
   if (!json) throw new GasError('parse', `GAS 回應不是 JSON${peek}`);
-  if (json.ok === false) throw new GasError('server', json.error || 'GAS 端回報失敗', { detail: json });
+  if (json.ok === false) {
+    if (/unauthorized/i.test(String(json.error || ''))) {
+      // 白話直指病因：密鑰不對（最常見：把 Script ID 當密鑰貼）
+      throw new GasError('auth', '密鑰不對（unauthorized）——SHARED_SECRET 在 GAS「專案設定 → 指令碼屬性」裡，不是指令碼 ID', { detail: json });
+    }
+    throw new GasError('server', json.error || 'GAS 端回報失敗', { detail: json });
+  }
   return json;
 }
 
-export function ping(opts: { fetchImpl?: typeof fetch } = {}): Promise<{ ok: boolean; detail: string }> {
-  return call('ping', {}, opts)
+export async function ping(opts: { fetchImpl?: typeof fetch } = {}): Promise<{ ok: boolean; detail: string }> {
+  // 第一段：ping 在後端不驗密鑰，只證明「端點活著、公開可達」
+  const base = await call('ping', {}, opts)
     .then((r: any) => ({
       ok: !!r.ok,
-      detail: r.ok
-        ? `連線正常 · ${r.app || 'GAS'} v${r.version || '?'} · 伺服器時間 ${r.server_ts || '-'}`
-        : `✗ ${r.error || '未知錯誤'}${r.secret_configured === false ? '（後端尚未設定 SHARED_SECRET）' : ''}`,
+      app: String(r.app || 'GAS'),
+      version: String(r.version || '?'),
+      serverTs: String(r.server_ts || '-'),
+      secretConfigured: r.secret_configured,
+      err: '',
     }))
-    .catch((e: any) => ({ ok: false, detail: `${e.kind ? e.kind + '：' : ''}${e.message || e}` }));
+    .catch((e: any) => ({
+      ok: false,
+      app: '',
+      version: '',
+      serverTs: '',
+      secretConfigured: undefined as unknown,
+      err: `${e?.kind ? e.kind + '：' : ''}${e?.message || e}`,
+    }));
+  if (!base.ok) {
+    return {
+      ok: false,
+      detail: `✗ ${base.err}${base.secretConfigured === false ? '（後端尚未設定 SHARED_SECRET）' : ''}`,
+    };
+  }
+  // 第二段：用需要密鑰的 pull 實測——否則密鑰貼錯（例如貼成 Script ID）測試也會假綠
+  const cfg = loadConfig();
+  if (!(cfg.secret || '').trim()) {
+    return {
+      ok: false,
+      detail: `△ 端點正常 · ${base.app} v${base.version}，但本機尚未填密鑰——同步前請先填 SHARED_SECRET`,
+    };
+  }
+  try {
+    await call('pull', { since: null }, opts);
+    return {
+      ok: true,
+      detail: `連線與密鑰都正常 · ${base.app} v${base.version} · 伺服器時間 ${base.serverTs}`,
+    };
+  } catch (e: any) {
+    const kind = String(e?.kind || ''), msg = String(e?.message || e);
+    if (kind === 'auth') return { ok: false, detail: `✗ ${msg}` };
+    return { ok: false, detail: `△ 端點正常（ping ok），但密鑰實測失敗：${kind ? kind + '：' : ''}${msg}` };
+  }
 }
 
 /* --------------------------- 文件同步（核心） --------------------------- */
