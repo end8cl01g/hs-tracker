@@ -19,7 +19,9 @@ export class HsStorageService {
       const savedState = localStorage.getItem(CURRENT_STATE_KEY);
       if (savedState) {
         const parsed = JSON.parse(savedState);
-        const hs = normalizeHS(parsed?.character?.hs);
+        // 相容兩代存檔形狀：現行頂層 { hs, savedAt } 與舊版 { character: { hs } }。
+        // （此前只讀 character.hs → 永遠 undefined → 每次重載被空檔覆蓋＝進度歸零，審查時抓到）
+        const hs = normalizeHS(parsed?.hs ?? parsed?.character?.hs);
         const snap = deriveSnapshot(hs);
         const savedSlots = localStorage.getItem(STORAGE_KEY);
         const slots: SaveSlot[] = savedSlots ? JSON.parse(savedSlots) : [];
