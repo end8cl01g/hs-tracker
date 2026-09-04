@@ -15,6 +15,28 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Cinzel+Decorative:wght@700&family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet" />
+    <script>
+      // Legacy PWA migration: the previous handstand-tracker PWA precached its
+      // shell in Cache Storage ("hs-tracker-*"). Purge those buckets and drop
+      // any still-registered worker so every visitor gets this app, not the
+      // cached old UI. Runs once per load; harmless for fresh visitors.
+      (function () {
+        try {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (rs) {
+              rs.forEach(function (r) { r.unregister().catch(function () {}); });
+            }).catch(function () {});
+          }
+          if (window.caches && caches.keys) {
+            caches.keys().then(function (ks) {
+              ks.forEach(function (k) {
+                if (k.indexOf('hs-tracker-') === 0) caches.delete(k).catch(function () {});
+              });
+            }).catch(function () {});
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body class="bg-[#080a0e] text-[#d4cfc7] antialiased select-none overflow-x-hidden">
     <div id="root"></div>
