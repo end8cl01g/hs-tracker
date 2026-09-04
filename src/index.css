@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-cinzel: 'Cinzel', serif;
+    --font-cinzel-dec: 'Cinzel Decorative', serif;
+    --font-serif-tc: 'Noto Serif TC', serif;
+  }
+
+  body {
+    font-family: var(--font-cinzel), var(--font-serif-tc), serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    background-color: #050505;
+    color: #e0e0e0;
+  }
+}
+
+/* Professional Polish deep background */
+.skyrim-smoke-bg {
+  background: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #050505 100%);
+}
+
+.skyrim-fog {
+  background: radial-gradient(circle at 50% 40%, rgba(26, 26, 26, 0.8) 0%, rgba(10, 10, 10, 0.95) 70%, #050505 100%);
+}
+
+.star-glow-unlocked {
+  filter: drop-shadow(0 0 10px #72ffff88) drop-shadow(0 0 20px #72ffff44);
+}
+
+.star-glow-available {
+  filter: drop-shadow(0 0 8px rgba(196, 160, 0, 0.8)) drop-shadow(0 0 16px rgba(196, 160, 0, 0.4));
+}
+
+.star-glow-locked {
+  filter: drop-shadow(0 0 2px rgba(80, 80, 80, 0.4));
+}
+
+/* Professional Polish scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 1px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+

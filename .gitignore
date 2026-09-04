@@ -1,20 +1,8 @@
 node_modules/
-dist/
-.tmp/
-*.log
-.DS_Store
-# 憑證與專案識別檔不得進 repo（六帽裁定的紅線）
-.clasprc.json
-.clasp.json
-gas/.clasp.json
-gas/Bootstrap.gs
-gas/*.js
-.deploy/
-.github/token
-*.token
 build/
-gas/dist/
-# TS+Rollup 產物（雲端只推 gas/dist，裡面偶爾有部署用的 Bootstrap.gs）
-
-# 星圖預覽產物（npm run tree:preview）：本機看用的，不進 repo
-dist-preview/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example

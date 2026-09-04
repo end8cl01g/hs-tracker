@@ -1,0 +1,6 @@
+{
+  "name": "Skyrim Quest & Perks Tracker",
+  "description": "A mobile-first Skyrim quest journal and constellation perk skill tree tracker powered by Rust WebAssembly and TypeScript with offline saves and celestial animations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

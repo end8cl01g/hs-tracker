@@ -1,9 +1,9 @@
-name: build & deploy (GitHub Pages)
+# Deploy the Skyrim Quest & Perks Tracker (Vite SPA) to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
-  pull_request:
+    branches: ["main", "master"]
   workflow_dispatch:
 
 permissions:
@@ -11,62 +11,52 @@ permissions:
   pages: write
   id-token: write
 
+# Allow only one concurrent deployment; do NOT cancel in-progress runs so
+# production deployments always complete.
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      # TS 遷移後的第一道閘：型別不過就別往下（實測過 typecheck 抓到 doctor_ 引用不存在的 CONFIG_BASE_URL）
-      - run: npm run typecheck
-      # 再跑靜態閉環檢查：檔名/引用/PRECACHE/GAS 紅線/打包完整性，這些錯不需要瀏覽器就能抓
-      - run: npm run check
-      - run: npm test
-      - name: build dist（把 git sha 戳進 sw.js 的 cache key）
-        env:
-          BUILD_ID: ${{ github.sha }}
-        run: npm run build
-      - name: 建置產物完整性
-        run: |
-          test -f dist/index.html
-          test -f dist/vendor/sql-wasm.wasm
-          test -f dist/sw.js
-          # 前端已是 vite：入口只有一支 hashed bundle（dist/app.js 隨舊前端一起捨棄了）
-          [ "$(find dist/assets -name 'index-*.js' | wc -l)" -eq 1 ] || { echo "✗ dist/assets 的入口 js 不是一支 → vite 產物異常"; exit 1; }
-          test -f dist/data/workout.json      # 訓練內容是 PLAN.md 的編譯結果，少了就是資料沒進 dist
-          grep -q "${GITHUB_SHA}" dist/sw.js || { echo "✗ sw.js 沒含本次 build 代號 → 改版不會生效"; exit 1; }
-          grep -q "${GITHUB_SHA}" dist/index.html || { echo "✗ index.html 沒注入 build 代號 → UI 版號會騙人"; exit 1; }
-          ! grep -rlE "https?://(cdnjs|cdn\.jsdelivr|unpkg|fonts\.googleapis|ajax\.googleapis)\." dist/index.html dist/manifest.json dist/sw.js dist/assets/*.js dist/assets/*.css || { echo "✗ dist 含外部 CDN URL（離線 PWA 紅線；字型必須自架）"; exit 1; }
-          echo "dist ok：$(find dist -type f | wc -l) 檔 / $(du -sb dist | cut -f1) bytes"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist
-          retention-days: 7
-
   deploy:
-    if: github.ref == 'refs/heads/main'
-    needs: verify
-    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      # bun.lock is the source of truth for this repo (npm ci would fail);
+      # bun install --frozen-lockfile is deterministic and much faster.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run lint
+
+      - name: Build
+        run: bun run build
+
+      - name: Verify build output
+        run: |
+          test -f dist/index.html
+          echo "dist ok：$(find dist -type f | wc -l) files / $(du -sb dist | cut -f1) bytes"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
         with:
-          name: dist
-          path: _site
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+          # Automatically create/enable the Pages site if it does not exist yet
+          enablement: true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
-      - id: deployment
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
