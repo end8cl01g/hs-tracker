@@ -66,4 +66,43 @@ test('GAS 回 HTML 時，錯誤訊息要自帶證據（不然回報時我們要�
   await assert.rejects(() => b.G.call('pull', {}), (e) => { assert.equal(e.kind, 'parse'); assert.match(e.message, /不是 JSON/); return true; });
 });
 
-test.skip('（待遷移）index.html 提示文字與「複製診斷」按鈕 —— 設定頁尚未搬進 Skyrim 前端（舊前端已捨棄），搬回來時解開這條', () => {});
+// ── 設定卷軸（舊前端捨棄後，這些能力必須在新前端還原；下面四條就是「還原了沒」的證據）──
+const settingsSrc = readFileSync(join(ROOT, 'src', 'skyrim', 'components', 'SkyrimSettings.tsx'), 'utf8');
+const appSrc = readFileSync(join(ROOT, 'src', 'App.tsx'), 'utf8');
+const storeSrc = readFileSync(join(ROOT, 'src', 'skyrim', 'store.ts'), 'utf8');
+
+test('設定卷軸要有「複製診斷」，且剪貼簿不可用時得把文字摊在畫面上', () => {
+  assert.match(settingsSrc, /doDiag/, '沒有複製診斷的處理函式');
+  assert.match(settingsSrc, /copyText\(/, '要真的寫剪貼簿');
+  assert.match(settingsSrc, /<pre[^>]*>\s*\{diag\}\s*<\/pre>/, '剪貼簿失敗（iOS Safari 非安全上下文會拒絕）時要能看到並手動複製這段文字');
+  assert.match(storeSrc, /navigator\.clipboard\.writeText/, 'copyText 要走 navigator.clipboard，且回傳成不成功（不能假稱已複製）');
+});
+
+test('提示文字不准叫使用者去跑底線開頭的 private 函式（Apps Script Run 選單裡根本沒有）', () => {
+  const idx = readFileSync(join(ROOT, 'index.html'), 'utf8');
+  for (const [name, src] of [['SkyrimSettings.tsx', settingsSrc], ['index.html', idx], ['App.tsx', appSrc]]) {
+    const visible = src.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    const bad = [...visible.matchAll(/[「『]([^」』\n]{0,40}_\w+[^」』\n]{0,40})[」』]/g)].map((m) => m[1]);
+    assert.deepEqual(bad, [], `${name} 的介面文案叫使用者跑底線開頭的函式：${bad.join(' / ')}`);
+  }
+});
+
+test('同步三態 ok/partial/error 必須看得見（未設定雲端不能顯示成已同步）', () => {
+  for (const k of ['ok', 'partial', 'error', 'disabled', 'syncing']) {
+    assert.match(storeSrc, new RegExp(`${k}:\\s*['\`"][^'\`"]+['\`"]`), `SYNC_LABEL 少了 ${k} 的文案`);
+  }
+  assert.match(appSrc, /subscribeSync\(setSync\)/, 'App 要訂閱 SyncManager 的狀態');
+  assert.match(appSrc, /SYNC_LABEL\[sync\.status\]/, '狀態要進頂欄（Compass 副標）');
+  // 關鍵：sync-manager 自己必須把 truncated 折成 partial（前端只是顯示，規則不在前端重寫）
+  const sm = readFileSync(join(ROOT, 'src', 'sync-manager.ts'), 'utf8');
+  assert.match(sm, /report\.truncated \? 'partial' : 'ok'/, '佇列沒清空卻顯示已同步，就是騙人');
+});
+
+test('引擎依賴 global.UI（toast/confirm/refresh）——新前端必須裝 shim，否則匯出成功後才崩', () => {
+  assert.match(storeSrc, /export function installUiShim\(\)/, 'store.ts 要提供 UI shim');
+  assert.match(appSrc, /installUiShim\(\)/, 'App 要在掛載時裝上（先裝才有人 call UI.toast）');
+  const bk = readFileSync(join(ROOT, 'src', 'backup.ts'), 'utf8');
+  assert.match(bk, /global\.UI\?\.confirm \? await global\.UI\.confirm\(/, '匯入的整庫取代確認要優先走 UI shim（Skyrim 框），沒 shim 才退回原生 confirm');
+  assert.match(bk, /if \(!global\.UI\.softReload\) setTimeout\(\(\) => location\.reload\(\), 600\)/, 'SPA 能自己重抓就別整頁 reload');
+  assert.ok(settingsSrc.includes("from '../store'"), '設定頁只經 store.ts 使喚引擎，不另寫一套存檔邏輯');
+});

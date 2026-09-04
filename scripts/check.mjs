@@ -161,7 +161,16 @@ pass.push(`前端整站 ${(bytes / 1024).toFixed(0)}KB（1GB soft 上限的 ${(b
   const sm = read('src/sync-manager.ts');
   T(/_pushRounds\(/.test(sm) && /_pushOnce\(/.test(sm), 'push 連續多輪直到佇列清空', 'push 只推一輪：大佇列會被當成「已同步」');
   T(/status:\s*report\.rejected \? 'error' : report\.truncated \? 'partial' : 'ok'/.test(sm), '同步狀態分級 ok/partial/error', '同步狀態只有成功/失敗，殘留佇列會被藏起來');
-  T(/partial/.test(read('src/skyrim/store.ts')) || /partial/.test(read('src/skyrim/components/SkyrimCompass.tsx')), '（待接）同步三態會浮到前端', '合併後的 HUD/卷軸還沒顯示 ok/partial/error → 列入下一刀（先降為提醒）', 'warn');
+  // 三態看不見＝「佇列還沒清」會被顯示成成功，這是當初 P0 的一條；現在由設定卷軸＋頂欄承擔
+  {
+    const storeTxt = read('src/skyrim/store.ts');
+    const appTxt = read('src/App.tsx');
+    const setTxt = read('src/skyrim/components/SkyrimSettings.tsx');
+    const hasLabels = ['ok:', 'partial:', 'error:', 'disabled:'].every((k) => storeTxt.includes(`  ${k}`)) || /SYNC_LABEL[^=]*=\s*\{[\s\S]*partial:[\s\S]*error:/.test(storeTxt);
+    T(hasLabels, '同步三態在 store.SYNC_LABEL 有明確文案', 'SYNC_LABEL 少了 ok/partial/error/disabled 任一項');
+    T(/subscribeSync\(setSync\)/.test(appTxt) && /SYNC_LABEL\[sync\.status\]/.test(appTxt), '頂欄（Compass）顯示同步狀態', 'App 沒把同步狀態接到頂欄 → 使用者看不出是否真在同步');
+    T(/sync\.lastError/.test(setTxt) && /sync\.pending/.test(setTxt), '設定卷軸顯示 pending 與 lastError 原文', '錯誤原因沒露出來，回報時只能靠猜');
+  }
 }
 
 // 17) TS + Rollup 管線：源碼是 .ts，雲端/網頁只吃打包產物（任何一环缺了都會部署出一個空殼）

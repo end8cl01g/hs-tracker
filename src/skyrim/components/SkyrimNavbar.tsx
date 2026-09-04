@@ -1,8 +1,8 @@
 import React from 'react';
-import { Scroll, Flame, Shield, Sparkles, Compass } from 'lucide-react';
+import { Scroll, Flame, Shield, Settings, Compass } from 'lucide-react';
 import { skyrimAudio } from '../utils/audio';
 
-export type SkyrimTab = 'scrolls' | 'wordwall' | 'inventory' | 'magic' | 'perks';
+export type SkyrimTab = 'scrolls' | 'wordwall' | 'inventory' | 'magic' | 'perks' | 'settings';
 
 interface SkyrimNavbarProps {
   activeTab: SkyrimTab;
@@ -32,10 +32,11 @@ export const SkyrimNavbar: React.FC<SkyrimNavbarProps> = ({ activeTab, onTabChan
       icon: <Shield className="w-4 h-4" />
     },
     {
-      id: 'magic',
-      labelZh: '魔法聖殿',
-      labelEn: 'MAGIC & SHOUTS',
-      icon: <Sparkles className="w-4 h-4" />
+      // 原本是 'magic'（純示範內容，合併時捨棄）；這個位置換成真的功能：設定卷軸
+      id: 'settings',
+      labelZh: '見習者之卷 · 設定',
+      labelEn: 'SETTINGS SCROLL',
+      icon: <Settings className="w-4 h-4" />
     },
     {
       id: 'perks',

@@ -13,7 +13,7 @@
         try {
           const h = await global.showSaveFilePicker({ suggestedName: name, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
           const w = await h.createWritable(); await w.write(blob); await w.close();
-          global.UI.toast('已存檔 ✅'); return { saved: true, name };
+          global.UI.toast('已存檔'); return { saved: true, name };
         } catch (e) { if (e.name === 'AbortError') return { saved: false, cancelled: true }; }
       }
       const a = document.createElement('a');
@@ -28,13 +28,17 @@
       try { payload = JSON.parse(text); } catch (e) { global.UI.toast(`JSON 解析失敗：${e.message}`, true); return { ok: false }; }
       if (!payload?.tables) { global.UI.toast('不是本 App 的備份檔（缺 tables）', true); return { ok: false }; }
       const counts = Object.entries<any>(payload.tables).map(([t, r]) => `${t}:${r.length}`).join(' ');
-      const yes = confirm(`匯入會「整庫取代」目前資料。\n備份內容：${counts}\n確定繼續？`);
+      // 舊前端用原生 confirm()；新前端（Skyrim）由 UI shim 提供同一個介面的確認框，
+      // 沒有 shim 時退回原生 confirm —— 两条路都要問，匯入是整庫取代，不能靜默吞下去
+      const prompt = `匯入會「整庫取代」目前資料。\n備份內容：${counts}\n確定繼續？`;
+      const yes = global.UI?.confirm ? await global.UI.confirm(prompt) : confirm(prompt);
       if (!yes) return { ok: false, cancelled: true };
       await global.DataLayer.importAll(payload);
       await global.DBManager.flushNow();
-      await global.UI.refresh();
-      global.UI.toast('匯入完成，重新整理中…');
-      setTimeout(() => location.reload(), 600);
+      await global.UI.refresh?.();
+      global.UI.toast('匯入完成');
+      // 前端願意 softReload（SPA 自己重抓快照）就别整頁 reload：reload 會把 SW 更新與 DB 重開的失敗面帶回來
+      if (!global.UI.softReload) setTimeout(() => location.reload(), 600);
       return { ok: true, counts };
     },
 
