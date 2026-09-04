@@ -47,6 +47,8 @@ export interface Snapshot {
 }
 
 const SKILL_UNLOCK_XP = 50; // 舊 game-engine：解鎖技能節點獎勵 50 XP
+export const PERK_POINTS_PER_LEVEL = 3; // 每次升級獲得的技能點（原 1 點連主鏈都點不滿，經濟不可玩）
+export const PERK_UNLOCK_XP = SKILL_UNLOCK_XP; // UI 顯示用：每點亮一星位的 XP 回饋
 
 /** 由 history 解出每個日期完成的動作（帶當日所屬 phase 的 xp） */
 function exercisesForDate(hs: HSEmbedded, date: string): Array<{ ex: Exercise; objId: string } | null> {
@@ -236,7 +238,9 @@ export function deriveSnapshot(
   const hs = normalizeHS(input, today);
   const stats = computeStats(hs, today);
   const lvl = levelFor(stats.totalXP);
-  const pts = skillPoints(stats.level, hs.unlockedSkills.length, 1);
+  // 每次升級獲得 3 技能點：主鏈（手腕→牆→自由倒立）11 星在 Lv.5 前後可點滿，
+  // 52 週終盤約 15 點 / 33 星位仍保留取捨（Skyrim 本來就點不滿，但英雄之路必須走得通）。
+  const pts = skillPoints(stats.level, hs.unlockedSkills.length, PERK_POINTS_PER_LEVEL);
 
   const quests: Quest[] = [...buildWorkoutQuests(hs, today), ...buildGateQuests(hs), ...buildCustomQuests(hs)];
 

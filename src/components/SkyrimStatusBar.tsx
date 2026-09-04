@@ -92,11 +92,16 @@ export const SkyrimStatusBar: React.FC<SkyrimStatusBarProps> = ({
         >
           <div className="relative">
             <Sparkles className="w-4 h-4" />
-            {character.perkPoints > 0 && (
-              <span className="absolute -top-1.5 -right-2 px-1 py-0.2 bg-[#c4a000] text-black font-bold text-[9px] rounded-full animate-pulse shadow-[0_0_6px_#c4a000]">
-                {character.perkPoints}
-              </span>
-            )}
+            {/* 技能點徽章：有點數＝金色脈動；0 點＝灰色常駐（讓玩家知道點數系統存在） */}
+            <span
+              className={`absolute -top-1.5 -right-2 px-1 py-0.2 font-bold text-[9px] rounded-full ${
+                character.perkPoints > 0
+                  ? 'bg-[#c4a000] text-black animate-pulse shadow-[0_0_6px_#c4a000]'
+                  : 'bg-[#222] text-[#777] border border-[#444]'
+              }`}
+            >
+              {character.perkPoints}
+            </span>
           </div>
           <span className="text-[10px] tracking-[0.15em] uppercase font-serif mt-0.5 whitespace-nowrap">
             SKILLS

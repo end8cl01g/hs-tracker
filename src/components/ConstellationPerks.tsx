@@ -13,7 +13,8 @@ import {
 import confetti from 'canvas-confetti';
 import { SkillDefinition, PerkNode, CharacterStats } from '../types';
 import { INITIAL_SKILLS } from '../data/skyrimData';
-import { canUnlockSkillNode } from '../domain/rules';
+import { canUnlockSkillNode, levelFor } from '../domain/rules';
+import { PERK_POINTS_PER_LEVEL, PERK_UNLOCK_XP } from '../domain/adapters';
 import { skyrimAudio } from '../services/audioService';
 
 interface ConstellationPerksProps {
@@ -56,6 +57,27 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
     return parts.join(' · ');
   };
 
+  // 「換 Perk」機制透明化：距離下一批技能點還差多少 XP（null = 已達最高等級）
+  const lvlInfo = levelFor(hsXP);
+  const xpToNext = lvlInfo.next ? lvlInfo.toNext : null;
+
+  /** 星位被鎖住時的具體進度提示（與 canUnlockSkillNode 同序：deps → xp → points → streak） */
+  const lockHint = (perk: PerkNode): { text: string; tone: 'gold' | 'red' } => {
+    const depsMissing = perk.prerequisites.filter((pid) => !character.unlockedPerks.includes(pid));
+    if (depsMissing.length) return { text: '先點亮前置星位', tone: 'red' };
+    if (hsXP < (perk.min_xp ?? 0)) return { text: `總 XP 還差 ${(perk.min_xp ?? 0) - hsXP}`, tone: 'red' };
+    if (character.perkPoints < 1)
+      return {
+        text: xpToNext != null
+          ? `無技能點 — 打卡升級 +${PERK_POINTS_PER_LEVEL}（還差 ${xpToNext} XP）`
+          : '無技能點 — 已達最高等級，點數已用盡',
+        tone: 'red',
+      };
+    if (hsStreak < (perk.min_streak ?? 0))
+      return { text: `Streak 還差 ${(perk.min_streak ?? 0) - hsStreak} 天`, tone: 'red' };
+    return { text: `可解鎖 — 消耗 1 點，+${PERK_UNLOCK_XP} XP`, tone: 'gold' };
+  };
+
   // Change selected skill
   const handlePrevSkill = () => {
     skyrimAudio.playTabSwitch();
@@ -84,8 +106,11 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
       const whyText: Record<string, string> = {
         already: '此星位已點亮。',
         deps: '前置星位尚未點亮。',
-        xp: `總 XP 不足：需要 ${gate.need} XP（目前 ${hsXP}）`,
-        'no-points': '沒有可用技能點——升級可獲得點數。',
+        xp: `總 XP 不足：需要 ${gate.need} XP（目前 ${hsXP}，還差 ${Math.max(0, (gate.need ?? 0) - hsXP)}）`,
+        'no-points':
+          xpToNext != null
+            ? `沒有技能點——打卡升級可獲得 ${PERK_POINTS_PER_LEVEL} 點（還差 ${xpToNext} XP）。`
+            : '沒有技能點——已達最高等級，點數已用盡。',
         streak: `連續訓練天數不足：需要 ${gate.need} 天`,
         'no-node': '找不到技能節點。',
       };
@@ -105,7 +130,7 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
     // 寫回領域狀態（unlockedSkills）；XP／點數由 derive 統一重算
     onUnlockSkill(perk.id);
 
-    onShowNotification('PERK UNLOCKED', `星位點亮：${perk.name}（+50 XP）`);
+    onShowNotification('PERK UNLOCKED', `星位點亮：${perk.name}（+${PERK_UNLOCK_XP} XP）`);
   };
 
   // Touch & Mouse Drag handlers for celestial navigation
@@ -173,6 +198,31 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
             <RotateCcw className="w-3.5 h-3.5 text-[#c4a000]" />
             <span className="hidden sm:inline text-[10px] tracking-wider uppercase">RESET VIEW</span>
           </button>
+        </div>
+
+        {/* PERK POINTS 常駐條 ——「換 Perk」的貨幣與來源一目了然（0 點也顯示，附升級進度） */}
+        <div className="flex items-center justify-center gap-2.5 max-w-lg mx-auto mb-1.5">
+          <span
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-mono tracking-wider ${
+              character.perkPoints > 0
+                ? 'bg-[#c4a000]/10 text-[#c4a000] border-[#c4a000]/50 shadow-[0_0_8px_rgba(196,160,0,0.25)]'
+                : 'bg-[#111] text-[#777] border-[#333]'
+            }`}
+          >
+            <Sparkles className="w-3 h-3" />
+            {character.perkPoints} 技能點
+          </span>
+          {character.perkPoints > 0 ? (
+            <span className="text-[10px] text-[#72ffff]/80 font-mono tracking-wider">
+              點亮星位 · 1 點 / 星
+            </span>
+          ) : xpToNext != null ? (
+            <span className="text-[10px] text-[#888] font-mono tracking-wider">
+              打卡升級 +{PERK_POINTS_PER_LEVEL} 點 · 還差 {xpToNext} XP
+            </span>
+          ) : (
+            <span className="text-[10px] text-[#888] font-mono tracking-wider">已達最高等級</span>
+          )}
         </div>
 
         {/* Current Skill Header with Arrows */}
@@ -486,16 +536,37 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
             {/* Requirement Row */}
             <div className="flex justify-between items-center text-[10px] tracking-widest pt-2 border-t border-[#222] mb-3">
               <span className="opacity-40 uppercase">REQUIREMENT</span>
-              <span className="text-[#72ffff] font-mono">
-                {requirementLabel(selectedPerk)}
+              <span className={`font-mono ${requirementMet(selectedPerk) ? 'text-[#72ffff]' : 'text-[#888]'}`}>
+                {requirementLabel(selectedPerk)}{requirementMet(selectedPerk) ? ' ✓' : ''}
               </span>
             </div>
 
             {/* Action Unlock Button */}
             {!character.unlockedPerks.includes(selectedPerk.id) && (
               <div className="flex items-center justify-between gap-3 pt-1">
-                <div className="text-[10px] text-[#888] tracking-wider uppercase">
-                  PERK POINTS: <strong className="text-[#c4a000]">{character.perkPoints}</strong>
+                <div className="text-[10px] tracking-wider uppercase leading-relaxed min-w-0">
+                  <div className="text-[#888]">
+                    PERK POINTS:{' '}
+                    <strong
+                      className={
+                        character.perkPoints > 0 ? 'text-[#c4a000]' : 'text-[#e08080]'
+                      }
+                    >
+                      {character.perkPoints}
+                    </strong>
+                  </div>
+                  {(() => {
+                    const hint = lockHint(selectedPerk);
+                    return (
+                      <div
+                        className={`text-[9px] normal-case font-mono ${
+                          hint.tone === 'gold' ? 'text-[#c4a000]' : 'text-[#e08080]'
+                        }`}
+                      >
+                        {hint.text}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <button

@@ -225,15 +225,20 @@ export function canUnlockSkill(
   return { ok: true };
 }
 
-/** 供 ConstellationPerks 用的快速閘門（以 id 清單表示已解鎖） */
+/** 供 ConstellationPerks 用的快速閘門（以 id 清單表示已解鎖）
+ *  注意：UI 端的 PerkNode 用 prerequisites 欄位、領域端 SkillNode 用 requires——兩種都收，
+ *  否則星座頁的解鎖閘門會靜默跳過前置檢查（煙霧測試抓到的真 bug）。 */
 export function canUnlockSkillNode(
-  node: { id: string; requires?: string[]; min_xp?: number; min_streak?: number } | null | undefined,
+  node:
+    | { id: string; requires?: string[]; prerequisites?: string[]; min_xp?: number; min_streak?: number }
+    | null
+    | undefined,
   ctx: { totalXP?: number; streak?: number; points?: number; unlockedPerks?: string[] }
 ): { ok: boolean; why?: UnlockWhy; need?: number; missing?: string[] } {
   if (!node) return { ok: false, why: 'no-node' };
   const unlocked = new Set(ctx.unlockedPerks || []);
   if (unlocked.has(node.id)) return { ok: false, why: 'already' };
-  const missing = (node.requires || []).filter((d) => !unlocked.has(d));
+  const missing = (node.prerequisites ?? node.requires ?? []).filter((d) => !unlocked.has(d));
   if (missing.length) return { ok: false, why: 'deps', missing };
   if (node.min_xp != null && (ctx.totalXP || 0) < node.min_xp) return { ok: false, why: 'xp', need: node.min_xp };
   if (ctx.points == null || Number(ctx.points) <= 0) return { ok: false, why: 'no-points', need: 1 };

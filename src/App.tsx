@@ -21,7 +21,7 @@ import { SaveManagerView } from './components/SaveManagerView';
 import { SkyrimSettingsView } from './components/SkyrimSettingsView';
 import { SkyrimNotification } from './components/SkyrimNotification';
 import { normalizeHS, newHSState } from './domain/state';
-import { deriveSnapshot, applyQuestUpdate, applyProfileUpdate } from './domain/adapters';
+import { deriveSnapshot, applyQuestUpdate, applyProfileUpdate, PERK_POINTS_PER_LEVEL } from './domain/adapters';
 import { badgeDefs } from './domain/data';
 import { earnedBadges } from './domain/rules';
 import { loadConfig, startAutoSync, subscribeSync } from './services/syncService';
@@ -94,7 +94,7 @@ export default function App() {
       });
       setNotification({
         title: 'LEVEL UP!',
-        subtitle: `等級提升：Lv.${prev} → Lv.${snap.stats.level}（獲得 1 技能點）`,
+        subtitle: `等級提升：Lv.${prev} → Lv.${snap.stats.level}（獲得 ${PERK_POINTS_PER_LEVEL} 技能點，去星座頁換 Perk！）`,
       });
     }
     prevLevelRef.current = snap.stats.level;
