@@ -26,7 +26,7 @@ export const SkyrimStatusBar: React.FC<SkyrimStatusBarProps> = ({
   const staminaPct = Math.min(100, Math.max(0, (character.stamina / character.maxStamina) * 100));
 
   return (
-    <footer className="fixed bottom-0 inset-x-0 bg-[#000]/95 border-t border-[#333] pb-safe z-30 select-none backdrop-blur-md">
+    <footer className="relative w-full flex-none bg-[#000]/95 border-t border-[#333] pb-safe z-30 select-none backdrop-blur-md">
       {/* Attribute Triple Bars (Health, Magicka, Stamina) with inset shadows */}
       <div className="max-w-xl mx-auto px-4 pt-2 pb-1 grid grid-cols-3 gap-3 text-[11px]">
         {/* Magicka Bar */}

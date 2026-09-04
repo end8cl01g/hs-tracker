@@ -132,7 +132,7 @@ export const ConstellationPerks: React.FC<ConstellationPerksProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-130px)] flex flex-col bg-[#050505] overflow-hidden select-none">
+    <div className="relative w-full flex-1 min-h-0 flex flex-col bg-[#050505] overflow-hidden select-none">
       {/* Top Skill Category & Switcher Bar */}
       <div className="flex-none bg-[#000]/60 border-b border-[#333] px-3 py-2 z-20 backdrop-blur-md">
         {/* School Filters */}

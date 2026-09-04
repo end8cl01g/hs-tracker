@@ -422,3 +422,28 @@ export function applyPlanStart(hs: HSEmbedded, dateISO: string, today = todayISO
   if (dateISO === hs.startedAt) return hs;
   return { ...hs, startedAt: dateISO };
 }
+
+/**
+ * 清除「開始日期（錨點）之前」的打卡紀錄：history 與 logXP 內日期 < 錨點的條目全刪。
+ * 適用場景：那些日子其實沒有真的訓練（例如誤把初次打開 App 的日期當錨點、只是點開看看）。
+ * XP／等級／streak 由 derive 重算，自動反映；徽章不回收。
+ * 回傳 removedDates／removedXP 供 UI 回報；無可清者原物件直接回傳。
+ */
+export function purgePreAnchorLogs(
+  hs: HSEmbedded,
+  today = todayISO()
+): { hs: HSEmbedded; removedDates: string[]; removedXP: number } {
+  const anchor = hs.startedAt > today ? today : hs.startedAt; // 與任務視窗同規則的防禦
+  const removedDates = Object.keys(hs.history || {})
+    .filter((d) => d < anchor)
+    .sort();
+  const removedXP = removedDates.reduce((s, d) => s + Number(hs.logXP?.[d] ?? 0), 0);
+  if (!removedDates.length) return { hs, removedDates, removedXP };
+  const history = { ...hs.history };
+  const logXP = { ...(hs.logXP || {}) };
+  for (const d of removedDates) {
+    delete history[d];
+    delete logXP[d];
+  }
+  return { hs: { ...hs, history, logXP }, removedDates, removedXP };
+}

@@ -82,7 +82,7 @@ export const CharacterStatsView: React.FC<CharacterStatsViewProps> = ({
   );
 
   return (
-    <div className="relative w-full h-[calc(100vh-130px)] overflow-y-auto bg-[#050505] p-3 pb-12 select-none">
+    <div className="relative w-full flex-1 min-h-0 overflow-y-auto bg-[#050505] p-3 pb-12 select-none">
       <div className="max-w-4xl mx-auto space-y-4">
         {/* Character Card Header */}
         <div className="bg-[#0a0a0a] border border-[#333] rounded-lg p-4 shadow-xl relative overflow-hidden">

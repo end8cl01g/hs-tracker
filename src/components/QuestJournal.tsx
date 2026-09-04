@@ -175,7 +175,7 @@ export const QuestJournal: React.FC<QuestJournalProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-130px)] flex flex-col bg-[#050505] overflow-hidden select-none">
+    <div className="relative w-full flex-1 min-h-0 flex flex-col bg-[#050505] overflow-hidden select-none">
       {/* Category Pills & Search */}
       <div className="flex-none bg-[#000]/60 border-b border-[#333] p-3 backdrop-blur-md z-10">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
@@ -231,10 +231,10 @@ export const QuestJournal: React.FC<QuestJournalProps> = ({
         </div>
       </div>
 
-      {/* Main Journal Content: Split / responsive layout */}
-      <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-12 max-w-5xl mx-auto w-full">
+      {/* Main Journal Content: Split / responsive layout（手機：整區捲動；桌面：雙欄各自捲動） */}
+      <div className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden grid grid-cols-1 md:grid-cols-12 md:grid-rows-[minmax(0,1fr)] max-w-5xl mx-auto w-full">
         {/* Left column: Quest list */}
-        <div className="md:col-span-5 border-r border-[#222] overflow-y-auto p-3 space-y-2">
+        <div className="md:col-span-5 border-r border-[#222] md:overflow-y-auto p-3 space-y-2">
           {filteredQuests.length === 0 ? (
             <div className="text-center py-10 text-[#666] text-xs font-serif italic">
               No quests found matching your criteria.
@@ -320,7 +320,7 @@ export const QuestJournal: React.FC<QuestJournalProps> = ({
         </div>
 
         {/* Right column: Selected Quest Detail view */}
-        <div className="md:col-span-7 overflow-y-auto p-4 bg-[#080808] flex flex-col">
+        <div className="md:col-span-7 md:overflow-y-auto p-4 bg-[#080808] flex flex-col">
           {currentQuest ? (
             <div className="space-y-4">
               {/* Quest Header */}

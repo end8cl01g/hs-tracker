@@ -7,7 +7,7 @@ import {
   SYNC_LABEL, subscribeSync, getSyncState, loadConfig, saveConfig, cleanUrl, urlProblem,
   syncNow, ping, pushCloudBackup, diagnostics, deviceId, type SyncState,
 } from '../services/syncService';
-import { planStartInfo, applyPlanStart } from '../domain/adapters';
+import { planStartInfo, applyPlanStart, purgePreAnchorLogs } from '../domain/adapters';
 import { todayISO } from '../domain/rules';
 import { storageService } from '../services/storageService';
 import type { HSEmbedded } from '../types';
@@ -76,6 +76,7 @@ export const SkyrimSettingsView: React.FC<SkyrimSettingsViewProps> = ({
   // 課表開始日期
   const [startDate, setStartDate] = useState('');
   const [startNote, setStartNote] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
+  const [armPurge, setArmPurge] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -91,6 +92,7 @@ export const SkyrimSettingsView: React.FC<SkyrimSettingsViewProps> = ({
     setSecret(c.secret);
     setStartDate(hs.startedAt);
     setStartNote(null);
+    setArmPurge(false);
   }, [open, hs.startedAt]);
 
   useEffect(() => {
@@ -178,6 +180,19 @@ export const SkyrimSettingsView: React.FC<SkyrimSettingsViewProps> = ({
   }, () => `課表開始日期已更新（${label}）`);
 
   const resetStartToToday = () => applyStart(todayISO(), '今天');
+
+  /* ---------------- 清除錨點前的打卡（那些日子其實沒練） ---------------- */
+  const purge = purgePreAnchorLogs(hs);
+  const doPurge = () => {
+    const r = purgePreAnchorLogs(hs);
+    onApplyHS(r.hs);
+    setArmPurge(false);
+    setStartNote(
+      r.removedDates.length
+        ? { tone: 'ok', text: `已清除 ${r.removedDates.length} 天打卡（${r.removedDates[0]} ~ ${r.removedDates[r.removedDates.length - 1]}），XP −${r.removedXP}；統計已重算` }
+        : { tone: 'ok', text: '開始日期前沒有打卡紀錄，資料本來就是乾淨的' }
+    );
+  };
 
   /* ---------------- 備份與還原 ---------------- */
   const doExport = () => act('export', async () => {
@@ -352,6 +367,29 @@ export const SkyrimSettingsView: React.FC<SkyrimSettingsViewProps> = ({
               <div className="mt-2 text-[11px] leading-relaxed text-stone-500">
                 課表不是從你第一次打開 App 那天開始？在這裡校正錨點。週數 → 階段 → 每日菜單會全部重推導；
                 已打卡的 XP 有快照保護，不會因為重對映而改變。
+              </div>
+              {/* 錨點前的日子其實沒練 → 一鍵清掉（兩段式確認） */}
+              <div className="mt-3 border-t border-stone-800 pt-3">
+                {purge.removedDates.length ? (
+                  armPurge ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] text-rose-300">
+                        清除 {purge.removedDates[0]} ~ {purge.removedDates[purge.removedDates.length - 1]} 共 {purge.removedDates.length} 天（XP −{purge.removedXP}）？無法復原
+                      </span>
+                      <Btn icon={<Trash2 className="w-4 h-4" />} onClick={doPurge} disabled={!!busy} className="!border-rose-800/70 hover:!border-rose-400">真的清除</Btn>
+                      <Btn onClick={() => setArmPurge(false)}>算了</Btn>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Btn icon={<Trash2 className="w-4 h-4" />} onClick={() => setArmPurge(true)} disabled={!!busy}>
+                        清除開始日期前的打卡（{purge.removedDates.length} 天 · {purge.removedXP} XP）
+                      </Btn>
+                      <span className="text-[11px] text-stone-500">那些日子其實沒有訓練？清掉後 XP／streak 自動重算。</span>
+                    </div>
+                  )
+                ) : (
+                  <div className="text-[11px] text-stone-500">開始日期之前沒有任何打卡紀錄，資料是乾淨的。</div>
+                )}
               </div>
               {startNote && (
                 <div className={`mt-2 text-[11px] ${startNote.tone === 'ok' ? 'text-emerald-300' : 'text-rose-300'}`}>{startNote.text}</div>

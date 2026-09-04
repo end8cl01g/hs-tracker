@@ -161,7 +161,7 @@ export default function App() {
   const activeQuests = snap.quests.filter((q) => q.active && !q.completed);
 
   return (
-    <div className="relative min-h-screen w-full bg-[#05070a] text-[#e2e8f0] flex flex-col justify-between overflow-hidden skyrim-smoke-bg">
+    <div className="relative h-dvh w-full bg-[#05070a] text-[#e2e8f0] flex flex-col justify-between overflow-hidden skyrim-smoke-bg">
       {/* Top Skyrim Compass & Navigation Header */}
       <SkyrimCompass
         activeQuests={activeQuests}
@@ -172,7 +172,7 @@ export default function App() {
       />
 
       {/* Main Tab Viewport with smooth Skyrim fade transitions */}
-      <main className="flex-1 w-full relative overflow-hidden flex flex-col">
+      <main className="flex-1 min-h-0 w-full relative overflow-hidden flex flex-col">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentTab}
@@ -180,7 +180,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -14 }}
             transition={{ duration: 0.28, ease: 'easeInOut' }}
-            className="flex-1 flex flex-col"
+            className="flex-1 min-h-0 flex flex-col"
           >
             {currentTab === 'perks' && (
               <ConstellationPerks

@@ -50,7 +50,7 @@ export const SkyrimCompass: React.FC<SkyrimCompassProps> = ({
   ];
 
   return (
-    <header className="relative w-full bg-[#000]/60 border-b border-[#333] backdrop-blur-md pt-2 pb-1.5 px-4 z-30 select-none">
+    <header className="relative w-full flex-none bg-[#000]/60 border-b border-[#333] backdrop-blur-md pt-2 pb-1.5 px-4 z-30 select-none">
       {/* Top action row */}
       <div className="flex items-center justify-between max-w-5xl mx-auto mb-1.5 text-xs text-[#e0e0e0]">
         {/* Left: Quick Save & Stats access */}

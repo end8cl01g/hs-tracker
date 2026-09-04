@@ -119,7 +119,7 @@ export const SaveManagerView: React.FC<SaveManagerViewProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-130px)] overflow-y-auto bg-[#050505] p-3 pb-12 select-none">
+    <div className="relative w-full flex-1 min-h-0 overflow-y-auto bg-[#050505] p-3 pb-12 select-none">
       <div className="max-w-4xl mx-auto space-y-4">
         {/* Offline Status & Top Bar */}
         <div className="bg-[#0a0a0a] border border-[#333] rounded-lg p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl">
